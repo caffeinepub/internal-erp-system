@@ -1,0 +1,139 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "ERP UI/UX redesign + list sorting + admin backup UI (frontend-only)",
+  "requirements": [
+    {
+      "id": "REQ-5",
+      "summary": "Redesign overall UI/UX information architecture and navigation to a modern ledger-style ERP layout while keeping all existing modules reachable and English-only copy.",
+      "acceptanceCriteria": [
+        "Dashboard remains the main entry after login and still exposes access to Inventory, Contacts, Products, Purchase, Billing, and Finance modules.",
+        "Navigation and screen layouts are noticeably redesigned compared to current tab grid (e.g., new sidebar/bottom-nav pattern, new header layout, redesigned list/detail composition), but all existing module features remain reachable and functional.",
+        "No user-facing text claims to be Vyapar or implies affiliation; the UI does not replicate Vyapar screenshots or proprietary visuals 1:1.",
+        "All user-facing UI text is in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Gate application data behind Internet Identity authentication: render the existing LoginPage when unauthenticated and the Dashboard when authenticated, preserving the profile setup modal logic. Keep Dashboard as the post-login entry. (Uses the selected 'authorization' component expectations around requiring login before showing data; verify the component's usage instructions before implementing.)"
+        },
+        {
+          "path": "frontend/src/pages/Dashboard.tsx",
+          "operation": "modify",
+          "description": "Replace the current 7-column Tabs grid navigation with a redesigned information architecture using an app shell layout (sidebar for desktop + bottom navigation for mobile) and a content area that renders the existing module components (DashboardOverview, InventoryModule, ContactsModule, ProductsModule, PurchaseModule, BillingModule, FinanceModule). Ensure all modules remain reachable and functional. Use shadcn/ui primitives for consistent layout elements; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Redesign header structure (branding area, quick actions, user menu) to match the new app shell visual patterns while keeping English-only labels and avoiding any Vyapar-affiliation language. Continue to use shadcn/ui Button/DropdownMenu/Badge; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AppShell.tsx",
+          "operation": "create",
+          "description": "Create an app shell component that provides the new overall layout (sidebar + top bar spacing + mobile bottom navigation slot) and composes the existing Header and Footer. Use shadcn/ui components where appropriate; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/PrimaryNavigation.tsx",
+          "operation": "create",
+          "description": "Create a primary navigation component (desktop sidebar + mobile bottom nav) listing the required modules (Dashboard, Inventory, Contacts, Products, Purchase, Billing, Finance) with clear English labels and distinct iconography. Use shadcn/ui Button and/or navigation patterns; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/ModulePageHeader.tsx",
+          "operation": "create",
+          "description": "Create a reusable module header pattern (title, subtitle, optional right-side actions area) to standardize key screens for the redesigned UI. Use shadcn/ui Card/Typography utilities; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Adjust theme tokens and global layout helpers to support the redesigned shell (sidebar widths, navigation active states, module spacing) while staying within existing Tailwind/CSS variable patterns. Ensure all visible copy remains English."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "Extend Tailwind theme as needed for redesigned navigation and module layout (e.g., sizes/spacing tokens), keeping changes minimal and compatible with existing shadcn/ui styling; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add consistent client-side sorting controls (field + asc/desc) to Estimates, Purchases, Products, and key Finance report tables without breaking existing filtering/search flows.",
+      "acceptanceCriteria": [
+        "Billing: Estimates table can be sorted by at least Created Date and Amount (net/total), with ascending/descending toggle.",
+        "Purchasing: Purchases list/report can be sorted by at least Purchase Date and Total (quantity*cost), with ascending/descending toggle.",
+        "Products: Products table can be sorted by at least Name, Category, Price, and Stock Quantity, with ascending/descending toggle.",
+        "Finance reports: Each targeted report table provides a sorting control and visibly reorders rows accordingly without breaking existing date filtering and product search filtering.",
+        "Sorting works together with existing filters/search (i.e., sort is applied after filtering)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/SortControls.tsx",
+          "operation": "create",
+          "description": "Create a reusable SortControls component that renders: (1) a field selector and (2) ascending/descending toggle, designed to be reused across modules. Use shadcn/ui Select and Button (or Toggle) for consistent UI; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/sort.ts",
+          "operation": "create",
+          "description": "Add small, shared utilities for stable client-side sorting (string/number/date/bigint helpers) and an 'applySortAfterFilter' pattern to ensure sorting is applied after existing filters/search."
+        },
+        {
+          "path": "frontend/src/components/BillingModule.tsx",
+          "operation": "modify",
+          "description": "Integrate SortControls into the Estimates list/table view and apply client-side sorting to the currently displayed/filtered estimates dataset (after any existing filtering/search). Add at least: Created Date and Amount (net/total). Use shadcn/ui controls; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/PurchaseModule.tsx",
+          "operation": "modify",
+          "description": "Integrate SortControls into the Purchases list view and apply client-side sorting to the currently displayed purchases (after any existing filtering/search). Add at least: Purchase Date and computed Total (quantity*cost). Use shadcn/ui controls; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/ProductsModule.tsx",
+          "operation": "modify",
+          "description": "Integrate SortControls into the Products table view and apply client-side sorting to the displayed product list (after any existing filtering/search). Add at least: Name, Category, Price, Stock Quantity. Use shadcn/ui controls; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/FinanceModule.tsx",
+          "operation": "modify",
+          "description": "Add SortControls to each targeted Finance report table (Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions) and apply sorting after existing date filtering and search filtering (inventorySearchQuery/productPerformanceSearchQuery/companyName). Use shadcn/ui controls; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Provide an admin-only Backup screen to download/export and upload/import a single structured backup payload via existing backend capabilities, with overwrite warnings and success/failure messaging.",
+      "acceptanceCriteria": [
+        "Backend provides an admin-gated export endpoint returning a single structured payload that includes all records needed to reconstruct the app state (at least: products, contacts, estimates, purchases, and company branding fields).",
+        "Backend provides an admin-gated import endpoint that replaces current state with the uploaded payload (clear + restore), with basic validation and a clear success/failure result.",
+        "Frontend provides an Admin-only Backup screen/section with: (1) Download backup, (2) Upload backup, (3) a clear warning that importing will overwrite current data.",
+        "Exported backup can be imported into a fresh deploy and the UI shows the restored records in Products/Contacts/Billing/Purchase lists."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks for backup export/import using the existing backend capabilities (backupExport, backupImport), including cache invalidation for domain lists after a successful import (products/contacts/estimates/purchases/companyBranding/inventory-related views as applicable). Handle authorization errors and show user-friendly toast messages."
+        },
+        {
+          "path": "frontend/src/components/AdminBackupModule.tsx",
+          "operation": "create",
+          "description": "Create an Admin-only Backup module UI with: Download backup (JSON file), Upload backup (file picker + validation + confirmation), and a prominent warning that import overwrites current data. Use shadcn/ui Card, Button, Input, AlertDialog for confirmation; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AccessDeniedScreen.tsx",
+          "operation": "modify",
+          "description": "Implement the AccessDeniedScreen placeholder to show a clear English message for unauthorized access (e.g., non-admin attempting to open Backup), with a navigation action back to Dashboard. Use shadcn/ui Button/Card; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/Dashboard.tsx",
+          "operation": "modify",
+          "description": "Wire the new AdminBackupModule into the redesigned navigation as an Admin-only section (no access for non-admin). Ensure it is not an orphan view: it must be reachable via the new primary navigation and guarded by admin role checks. Use the selected 'authorization' component UI guidance for admin-only access; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/PrimaryNavigation.tsx",
+          "operation": "modify",
+          "description": "Add an Admin-only navigation item for Backup (visible only to admins) and route it within the dashboard shell's module selection. Use shadcn/ui navigation controls; verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}
