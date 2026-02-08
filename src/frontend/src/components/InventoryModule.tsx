@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Package, Edit, Search } from 'lucide-react';
 import type { Product } from '../backend';
+import ModulePageHeader from './ModulePageHeader';
 
 export default function InventoryModule() {
   const { data: products = [], isLoading } = useGetAllProducts();
@@ -83,35 +84,31 @@ export default function InventoryModule() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="w-8 h-8" />
-            Inventory Management
-          </h2>
-          <p className="text-muted-foreground">Track and manage stock levels</p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <ModulePageHeader
+        icon={<Package className="w-5 h-5" />}
+        title="Inventory Management"
+        subtitle="Track and manage stock levels"
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Current Inventory</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Current Inventory</CardTitle>
+          <CardDescription className="text-sm">
             View and update stock quantities for all products
           </CardDescription>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No products in inventory</p>
-              <p className="text-sm text-muted-foreground">Add products in the Products module</p>
+            <div className="text-center py-8">
+              <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No products in inventory</p>
+              <p className="text-xs text-muted-foreground">Add products in the Products module</p>
             </div>
           ) : (
             <>
               {/* Search Filter */}
-              <div className="mb-4">
+              <div className="mb-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -125,8 +122,8 @@ export default function InventoryModule() {
               </div>
 
               {sortedAndFilteredProducts.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No products found matching "{searchQuery}"</p>
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm">No products found matching "{searchQuery}"</p>
                 </div>
               ) : (
                 <div className="rounded-md border">

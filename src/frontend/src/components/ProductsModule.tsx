@@ -4,7 +4,7 @@ import {
   useAddProduct,
   useUpdateProduct,
   useDeleteProduct,
-  useGetCallerUserRole,
+  useIsCallerAdmin,
 } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,141 +26,85 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Plus, Edit, Trash2 } from 'lucide-react';
 import type { Product } from '../backend';
+import ModulePageHeader from './ModulePageHeader';
 
 export default function ProductsModule() {
   const { data: products = [], isLoading } = useGetAllProducts();
-  const { data: userRole } = useGetCallerUserRole();
+  const { data: isAdmin } = useIsCallerAdmin();
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
-  const isAdmin = userRole === 'admin';
-
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     price: '',
   });
 
-  const [formErrors, setFormErrors] = useState({
-    name: '',
-    category: '',
-    price: '',
-  });
+  const handleSubmit = () => {
+    const price = parseFloat(formData.price);
+    if (isNaN(price) || price < 0) return;
 
-  const resetForm = () => {
-    setFormData({ name: '', category: '', price: '' });
-    setFormErrors({ name: '', category: '', price: '' });
-  };
-
-  const validateForm = (): boolean => {
-    const errors = {
-      name: '',
-      category: '',
-      price: '',
-    };
-
-    let isValid = true;
-
-    if (!formData.name.trim()) {
-      errors.name = 'Product name is required';
-      isValid = false;
-    }
-
-    if (!formData.category.trim()) {
-      errors.category = 'Category is required';
-      isValid = false;
-    }
-
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      errors.price = 'Price must be greater than 0';
-      isValid = false;
-    }
-
-    setFormErrors(errors);
-    return isValid;
-  };
-
-  const handleAdd = () => {
-    if (!validateForm()) return;
-
-    addProduct.mutate(
-      {
-        name: formData.name.trim(),
-        category: formData.category.trim(),
-        price: parseFloat(formData.price),
-      },
-      {
-        onSuccess: () => {
-          setIsAddDialogOpen(false);
-          resetForm();
+    if (editingProduct) {
+      updateProduct.mutate(
+        {
+          id: editingProduct.id,
+          name: formData.name,
+          category: formData.category,
+          price,
         },
-      }
-    );
-  };
-
-  const handleEdit = () => {
-    if (!selectedProduct || !validateForm()) return;
-
-    updateProduct.mutate(
-      {
-        id: selectedProduct.id,
-        name: formData.name.trim(),
-        category: formData.category.trim(),
-        price: parseFloat(formData.price),
-      },
-      {
-        onSuccess: () => {
-          setIsEditDialogOpen(false);
-          setSelectedProduct(null);
-          resetForm();
+        {
+          onSuccess: () => {
+            setIsDialogOpen(false);
+            setEditingProduct(null);
+            resetForm();
+          },
+        }
+      );
+    } else {
+      addProduct.mutate(
+        {
+          name: formData.name,
+          category: formData.category,
+          price,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            setIsDialogOpen(false);
+            resetForm();
+          },
+        }
+      );
+    }
   };
 
-  const handleDeleteConfirm = () => {
-    if (!productToDelete) return;
-
-    deleteProduct.mutate(productToDelete.id, {
-      onSuccess: () => {
-        setProductToDelete(null);
-      },
-    });
-  };
-
-  const openEditDialog = (product: Product) => {
-    setSelectedProduct(product);
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
     setFormData({
       name: product.name,
       category: product.category,
       price: product.price.toString(),
     });
-    setFormErrors({ name: '', category: '', price: '' });
-    setIsEditDialogOpen(true);
+    setIsDialogOpen(true);
   };
 
-  const openAddDialog = () => {
-    resetForm();
-    setIsAddDialogOpen(true);
+  const handleDelete = (productId: bigint) => {
+    if (confirm('Are you sure you want to delete this product?')) {
+      deleteProduct.mutate(productId);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      category: '',
+      price: '',
+    });
   };
 
   if (isLoading) {
@@ -172,39 +116,37 @@ export default function ProductsModule() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ShoppingCart className="w-8 h-8" />
-            Product Management
-          </h2>
-          <p className="text-muted-foreground">Manage product catalog and pricing</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={openAddDialog}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Product
-          </Button>
-        )}
-      </div>
+    <div className="space-y-4">
+      <ModulePageHeader
+        icon={<ShoppingCart className="w-5 h-5" />}
+        title="Products Catalog"
+        subtitle="Manage your product inventory"
+        actions={
+          isAdmin && (
+            <Button onClick={() => setIsDialogOpen(true)} size="sm">
+              <Plus className="w-4 h-4 mr-1" />
+              Add Product
+            </Button>
+          )
+        }
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Product Catalog</CardTitle>
-          <CardDescription>
-            View and manage all products with pricing information
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">All Products</CardTitle>
+          <CardDescription className="text-sm">
+            View and manage product catalog
           </CardDescription>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No products yet</p>
+            <div className="text-center py-8">
+              <ShoppingCart className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No products yet</p>
               {isAdmin && (
-                <Button onClick={openAddDialog}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Product
+                <Button onClick={() => setIsDialogOpen(true)} className="mt-3" size="sm">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add First Product
                 </Button>
               )}
             </div>
@@ -238,17 +180,13 @@ export default function ProductsModule() {
                       {isAdmin && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(product)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setProductToDelete(product)}
+                              onClick={() => handleDelete(product.id)}
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
@@ -264,198 +202,76 @@ export default function ProductsModule() {
         </CardContent>
       </Card>
 
-      {/* Add Product Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
+            <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             <DialogDescription>
-              Enter the details for the new product
+              {editingProduct ? 'Update product information' : 'Enter product details'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="add-name">
-                Product Name <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="name">Product Name</Label>
               <Input
-                id="add-name"
+                id="name"
                 value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
-                }}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter product name"
-                className={formErrors.name ? 'border-destructive' : ''}
               />
-              {formErrors.name && (
-                <p className="text-sm text-destructive">{formErrors.name}</p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-category">
-                Category <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="category">Category</Label>
               <Input
-                id="add-category"
+                id="category"
                 value={formData.category}
-                onChange={(e) => {
-                  setFormData({ ...formData, category: e.target.value });
-                  if (formErrors.category) setFormErrors({ ...formErrors, category: '' });
-                }}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder="Enter category"
-                className={formErrors.category ? 'border-destructive' : ''}
               />
-              {formErrors.category && (
-                <p className="text-sm text-destructive">{formErrors.category}</p>
-              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-price">
-                Price (₹) <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="price">Price (₹)</Label>
               <Input
-                id="add-price"
+                id="price"
                 type="number"
                 step="0.01"
                 min="0"
                 value={formData.price}
-                onChange={(e) => {
-                  setFormData({ ...formData, price: e.target.value });
-                  if (formErrors.price) setFormErrors({ ...formErrors, price: '' });
-                }}
-                placeholder="0.00"
-                className={formErrors.price ? 'border-destructive' : ''}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="Enter price"
               />
-              {formErrors.price && (
-                <p className="text-sm text-destructive">{formErrors.price}</p>
-              )}
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
-                setIsAddDialogOpen(false);
+                setIsDialogOpen(false);
+                setEditingProduct(null);
                 resetForm();
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={addProduct.isPending}>
-              {addProduct.isPending ? 'Adding...' : 'Add Product'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Product Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>
-              Update the product details
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">
-                Product Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
-                }}
-                placeholder="Enter product name"
-                className={formErrors.name ? 'border-destructive' : ''}
-              />
-              {formErrors.name && (
-                <p className="text-sm text-destructive">{formErrors.name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">
-                Category <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="edit-category"
-                value={formData.category}
-                onChange={(e) => {
-                  setFormData({ ...formData, category: e.target.value });
-                  if (formErrors.category) setFormErrors({ ...formErrors, category: '' });
-                }}
-                placeholder="Enter category"
-                className={formErrors.category ? 'border-destructive' : ''}
-              />
-              {formErrors.category && (
-                <p className="text-sm text-destructive">{formErrors.category}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">
-                Price (₹) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => {
-                  setFormData({ ...formData, price: e.target.value });
-                  if (formErrors.price) setFormErrors({ ...formErrors, price: '' });
-                }}
-                placeholder="0.00"
-                className={formErrors.price ? 'border-destructive' : ''}
-              />
-              {formErrors.price && (
-                <p className="text-sm text-destructive">{formErrors.price}</p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditDialogOpen(false);
-                setSelectedProduct(null);
-                resetForm();
-              }}
+              onClick={handleSubmit}
+              disabled={
+                !formData.name ||
+                !formData.category ||
+                !formData.price ||
+                addProduct.isPending ||
+                updateProduct.isPending
+              }
             >
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={updateProduct.isPending}>
-              {updateProduct.isPending ? 'Updating...' : 'Update Product'}
+              {addProduct.isPending || updateProduct.isPending
+                ? 'Saving...'
+                : editingProduct
+                  ? 'Update'
+                  : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the product "{productToDelete?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteProduct.isPending}
-            >
-              {deleteProduct.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

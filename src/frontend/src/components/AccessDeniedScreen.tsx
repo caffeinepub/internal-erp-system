@@ -12,18 +12,18 @@ export default function AccessDeniedScreen({
   onBack
 }: AccessDeniedScreenProps) {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
       <Card className="max-w-md w-full">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-            <ShieldAlert className="w-6 h-6 text-destructive" />
+        <CardHeader className="text-center pb-3">
+          <div className="mx-auto w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+            <ShieldAlert className="w-5 h-5 text-destructive" />
           </div>
-          <CardTitle>Access Denied</CardTitle>
-          <CardDescription>{message}</CardDescription>
+          <CardTitle className="text-lg">Access Denied</CardTitle>
+          <CardDescription className="text-sm">{message}</CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
+        <CardContent className="text-center pt-0">
           {onBack && (
-            <Button onClick={onBack} variant="outline">
+            <Button onClick={onBack} variant="outline" size="sm">
               Go Back
             </Button>
           )}

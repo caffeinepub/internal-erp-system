@@ -1,108 +1,69 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T08:16:15.376Z",
+  "generatedAt": "2026-02-08T16:07:18.120Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
-        "id": "REQ-5",
-        "summary": "Redesign the app UI/UX into a Vyapar-like (but legally distinct) prototype by updating layout, navigation, and key screens while keeping existing ERP functionality intact (products, inventory, contacts, billing/estimates, purchasing, finance/reports, printing). The redesign must change the overall information architecture and visual patterns enough to avoid any 1:1 copying of Vyapar screens, while still providing a familiar business-ledger workflow (fast entry, prominent totals, clear lists, quick actions).",
+        "id": "REQ-16",
+        "summary": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/index.css",
+          "frontend/src/components/ContactsModule.tsx",
+          "frontend/src/components/ProfileSetupModal.tsx",
+          "frontend/src/components/PriceOverrideDialog.tsx",
+          "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
+          "frontend/src/components/AdminBackupModule.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/index.css",
+          "frontend/src/components/ContactsModule.tsx",
+          "frontend/src/components/ProfileSetupModal.tsx",
+          "frontend/src/components/PriceOverrideDialog.tsx",
+          "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
+          "frontend/src/components/AdminBackupModule.tsx"
+        ]
+      },
+      {
+        "id": "REQ-17",
+        "summary": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
+        "status": "implemented",
+        "plannedFiles": [
           "frontend/src/components/Header.tsx",
           "frontend/src/components/AppShell.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx",
-          "frontend/src/components/ModulePageHeader.tsx",
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js"
+          "frontend/src/components/MobileNavDrawer.tsx",
+          "frontend/src/index.css"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/Dashboard.tsx",
           "frontend/src/components/Header.tsx",
           "frontend/src/components/AppShell.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx",
-          "frontend/src/components/ModulePageHeader.tsx",
-          "frontend/src/index.css",
-          "frontend/tailwind.config.js"
+          "frontend/src/components/MobileNavDrawer.tsx",
+          "frontend/src/index.css"
         ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Add sorting options to complement existing search/autofill, for the main list/table views: Estimates list in BillingModule, Purchases list in PurchaseModule, Products list in ProductsModule, and key report tables in FinanceModule (at minimum: Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions). Provide a consistent sort UI (field + ascending/descending) and apply sorting client-side to the currently displayed/filtered dataset.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/SortControls.tsx",
-          "frontend/src/utils/sort.ts",
-          "frontend/src/components/BillingModule.tsx",
-          "frontend/src/components/PurchaseModule.tsx",
-          "frontend/src/components/ProductsModule.tsx",
-          "frontend/src/components/FinanceModule.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/SortControls.tsx",
-          "frontend/src/utils/sort.ts"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Add admin-accessible backup tooling to export and import app data so the user can keep their own backups and restore data after redeploys. This must include a backend API to export all persisted domain data (products, contacts, estimates, purchases, inventory snapshots, company branding metadata except raw blob bytes if not feasible) and an import API that restores the same dataset, plus a frontend UI for admins to download an export file and upload an import file.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/AdminBackupModule.tsx",
-          "frontend/src/components/AccessDeniedScreen.tsx",
-          "frontend/src/pages/Dashboard.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/AdminBackupModule.tsx",
-          "frontend/src/components/AccessDeniedScreen.tsx",
-          "frontend/src/pages/Dashboard.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx"
-        ]
-      },
-      {
-        "id": "REQ-8",
-        "summary": "Prevent future data loss on redeploy/upgrade by implementing upgrade-safe stable-memory persistence for all stored Maps/vars in the Motoko backend (products, contacts, estimates, purchases, inventory, userProfiles, companyBranding, approvals/access control state where applicable, and priceOverrideRequests). Implement preupgrade/postupgrade hooks and add/adjust backend/migration.mo only if required to safely migrate existing state.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/AccessDeniedScreen.tsx",
     "frontend/src/components/AdminBackupModule.tsx",
     "frontend/src/components/AppShell.tsx",
+    "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
+    "frontend/src/components/ContactsModule.tsx",
     "frontend/src/components/Header.tsx",
-    "frontend/src/components/ModulePageHeader.tsx",
-    "frontend/src/components/PrimaryNavigation.tsx",
-    "frontend/src/components/SortControls.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/MobileNavDrawer.tsx",
+    "frontend/src/components/PriceOverrideDialog.tsx",
+    "frontend/src/components/ProfileSetupModal.tsx",
     "frontend/src/index.css",
-    "frontend/src/pages/Dashboard.tsx",
-    "frontend/src/utils/sort.ts",
-    "frontend/tailwind.config.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

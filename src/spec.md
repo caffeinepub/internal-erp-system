@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Redesign the ERP app UI/UX into a Vyapar-like (but legally distinct) workflow, add consistent sorting controls across key lists/reports, and prevent data loss via admin backups plus upgrade-safe backend persistence.
+**Goal:** Improve UI layering clarity so modals/dialogs and navigation overlays are clearly separated from the background content (no confusing visual blending).
 
 **Planned changes:**
-- Redesign frontend information architecture and key screens (dashboard, navigation, list/detail layouts) to a new, legally distinct pattern while keeping all existing ERP modules and flows functional (Inventory, Contacts, Products, Purchase, Billing/Estimates, Finance/Reports, Printing).
-- Add a consistent client-side sorting UI (field + ascending/descending) to: Billing Estimates list, Purchase list, Products list, and targeted Finance report tables (Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions), ensuring sorting applies after existing filters/search.
-- Add admin-only backup tooling: backend export/import APIs for all persisted domain data and a frontend Admin Backup screen to download an export file and upload an import file (with overwrite warning).
-- Implement upgrade-safe stable-memory persistence in the Motoko backend using preupgrade/postupgrade so data survives canister upgrades; add/adjust migration logic only if needed to preserve existing state and API compatibility.
+- Standardize dialog/modal presentation so the modal surface is fully opaque with clear border/shadow and the page behind is uniformly dimmed via a consistent overlay.
+- Apply the improved modal layering/contrast consistently across modules, including the Contacts “Add New Contact” and edit dialogs.
+- Review and adjust app shell layering (z-index and backgrounds) for header/top navigation, main content container, and mobile drawer so overlays/drawers don’t “double show” or visually merge with underlying content.
 
-**User-visible outcome:** Users see a refreshed, business-ledger-style UI (English text) with familiar workflows, can sort key tables and reports, admins can export/import backups, and existing data remains intact after canister upgrades.
+**User-visible outcome:** When opening any modal/dialog or the mobile navigation drawer, the foreground surface is clearly readable and distinct, while the underlying page is uniformly dimmed and does not visually blend or overlap with the overlay.

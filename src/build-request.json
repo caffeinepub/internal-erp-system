@@ -1,101 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Vyapar-like (legally distinct) UI/UX redesign + sorting controls + data backup & upgrade-safe persistence",
-  "priority": "normal",
+  "title": "Improve UI background clarity and modal contrast (reduce confusing overlap)",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-5",
-      "text": "Redesign the app UI/UX into a Vyapar-like (but legally distinct) prototype by updating layout, navigation, and key screens while keeping existing ERP functionality intact (products, inventory, contacts, billing/estimates, purchasing, finance/reports, printing). The redesign must change the overall information architecture and visual patterns enough to avoid any 1:1 copying of Vyapar screens, while still providing a familiar business-ledger workflow (fast entry, prominent totals, clear lists, quick actions).",
+      "id": "REQ-16",
+      "text": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-8",
-          "msg-9",
-          "msg-10"
+          "msg-6"
         ],
         "quotes": [
-          "Check VYAPAR APP and provide me exact prototype",
-          "Do you want me to create a Vyapar‑like prototype for your app (matching layout, flow, navigation style)?",
-          "Yes"
+          "Not happy, still the background is confusing make it clear and visible",
+          "Screenshot_20260208-213057.png"
         ]
       },
       "acceptanceCriteria": [
-        "Dashboard remains the main entry after login and still exposes access to Inventory, Contacts, Products, Purchase, Billing, and Finance modules.",
-        "Navigation and screen layouts are noticeably redesigned compared to current tab grid (e.g., new sidebar/bottom-nav pattern, new header layout, redesigned list/detail composition), but all existing module features remain reachable and functional.",
-        "No user-facing text claims to be Vyapar or implies affiliation; the UI does not replicate Vyapar screenshots or proprietary visuals 1:1.",
-        "All user-facing UI text is in English."
+        "When any Dialog/Modal is open, the page behind it is uniformly dimmed with a clearly visible overlay (no patchy/see-through blending that makes the background look like part of the modal).",
+        "Dialog content uses a solid, opaque surface (e.g., card/background) with clear border/shadow so the modal is visually distinct from the background.",
+        "Text and form fields inside the modal remain high-contrast and readable in both light and dark themes.",
+        "The ContactsModule “Add New Contact” dialog (and edit dialog) matches this improved behavior."
       ]
     },
     {
-      "id": "REQ-6",
-      "text": "Add sorting options to complement existing search/autofill, for the main list/table views: Estimates list in BillingModule, Purchases list in PurchaseModule, Products list in ProductsModule, and key report tables in FinanceModule (at minimum: Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions). Provide a consistent sort UI (field + ascending/descending) and apply sorting client-side to the currently displayed/filtered dataset.",
+      "id": "REQ-17",
+      "text": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-6"
         ],
         "quotes": [
-          "...the version with this above update (search and Auto fill) including sorting option?"
+          "still the background is confusing make it clear and visible"
         ]
       },
       "acceptanceCriteria": [
-        "Billing: Estimates table can be sorted by at least Created Date and Amount (net/total), with ascending/descending toggle.",
-        "Purchasing: Purchases list/report can be sorted by at least Purchase Date and Total (quantity*cost), with ascending/descending toggle.",
-        "Products: Products table can be sorted by at least Name, Category, Price, and Stock Quantity, with ascending/descending toggle.",
-        "Finance reports: Each targeted report table provides a sorting control and visibly reorders rows accordingly without breaking existing date filtering and product search filtering.",
-        "Sorting works together with existing filters/search (i.e., sort is applied after filtering)."
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Add admin-accessible backup tooling to export and import app data so the user can keep their own backups and restore data after redeploys. This must include a backend API to export all persisted domain data (products, contacts, estimates, purchases, inventory snapshots, company branding metadata except raw blob bytes if not feasible) and an import API that restores the same dataset, plus a frontend UI for admins to download an export file and upload an import file.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-3",
-          "msg-5"
-        ],
-        "quotes": [
-          "...provide me the backup data...",
-          "My template has been changed my added data is blank now"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend provides an admin-gated export endpoint returning a single structured payload that includes all records needed to reconstruct the app state (at least: products, contacts, estimates, purchases, and company branding fields).",
-        "Backend provides an admin-gated import endpoint that replaces current state with the uploaded payload (clear + restore), with basic validation and a clear success/failure result.",
-        "Frontend provides an Admin-only Backup screen/section with: (1) Download backup, (2) Upload backup, (3) a clear warning that importing will overwrite current data.",
-        "Exported backup can be imported into a fresh deploy and the UI shows the restored records in Products/Contacts/Billing/Purchase lists."
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "text": "Prevent future data loss on redeploy/upgrade by implementing upgrade-safe stable-memory persistence for all stored Maps/vars in the Motoko backend (products, contacts, estimates, purchases, inventory, userProfiles, companyBranding, approvals/access control state where applicable, and priceOverrideRequests). Implement preupgrade/postupgrade hooks and add/adjust backend/migration.mo only if required to safely migrate existing state.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-5"
-        ],
-        "quotes": [
-          "...your canister data was reset during the recent rebuild... makes everything look blank."
-        ]
-      },
-      "acceptanceCriteria": [
-        "After a canister upgrade (not reinstall), existing data remains available (products/contacts/estimates/purchases still load).",
-        "All key collections and variables that represent user-entered data are included in stable persistence (not just a subset).",
-        "Any required state migration is conditional and does not wipe existing data on upgrade.",
-        "No change breaks existing frontend queries/mutations (the same APIs continue to respond with expected types)."
+        "Header and top navigation remain clearly separated from the page (solid background + border) and do not visually bleed into underlying content when scrolling.",
+        "On mobile, opening the navigation drawer shows a clear, distinct drawer surface over a dimmed background; underlying module content does not compete visually with the drawer.",
+        "No UI state shows both navigation overlay and module content in a way that appears merged (consistent separation on all modules)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo; only create/update backend/migration.mo when necessary per the conditional migration policy.",
-    "Do not modify frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and files under frontend/src/components/ui (compose them instead).",
-    "Keep the redesign legally distinct from Vyapar; do not replicate proprietary visuals/screens exactly."
+    "Do not modify files under frontend/src/components/ui (read-only component sources); apply fixes via composition (props/className) and/or global CSS (e.g., frontend/src/index.css).",
+    "Do not add or integrate any payment, billing, subscription, or credit-debit logic; this change request is UI clarity only."
   ],
   "nonGoals": [
-    "Recovering or providing the user's lost production data from earlier deployments (no platform access to historical canister state).",
-    "Delivering an exact replica/clone of the Vyapar app UI or any copyrighted Vyapar assets.",
-    "Adding third-party authentication providers beyond Internet Identity."
+    "Handling user billing, refunds, credits, or payment disputes.",
+    "Changing ERP domain behavior (products, inventory, contacts, billing, purchasing, finance calculations)."
   ],
   "imageRequirements": {
     "required": [],

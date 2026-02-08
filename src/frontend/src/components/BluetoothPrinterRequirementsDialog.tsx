@@ -137,7 +137,7 @@ export default function BluetoothPrinterRequirementsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-2 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Info className="w-5 h-5" />
@@ -147,7 +147,7 @@ export default function BluetoothPrinterRequirementsDialog({
 
         <div className="space-y-6">
           {/* Requirements List */}
-          <Alert>
+          <Alert className="bg-card">
             <Info className="h-4 w-4" />
             <AlertDescription>
               <p className="font-medium mb-2">Requirements:</p>

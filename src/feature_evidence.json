@@ -2,17 +2,39 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-redesign-the-app-ui-ux-into-a-vyapar-like-but-legally-distinct-prototype-by-updating-layout-navigation-and-key-screens-while-keeping-existing-erp-functionality-intact-products-inventory-contacts-billing-estimates-purchasing-finance-reports-printing-the-redesign-must-change-the-overall-information-architecture-and-visual-patterns-enough-to-avoid-any-1-1-copying-of-vyapar-screens-while-still-providing-a-familiar-business-ledger-workflow-fast-entry-prominent-totals-clear-lists-quick-actions",
-      "featureTitle": "Redesign the app UI/UX into a Vyapar-like (but legally distinct) prototype by updating layout, navigation, and key screens while keeping existing ERP functionality intact (products, inventory, contacts, billing/estimates, purchasing, finance/reports, printing). The redesign must change the overall information architecture and visual patterns enough to avoid any 1:1 copying of Vyapar screens, while still providing a familiar business-ledger workflow (fast entry, prominent totals, clear lists, quick actions).",
+      "featureId": "feature-fix-the-confusing-unclear-background-layering-shown-in-the-uploaded-screenshot-by-making-dialogs-modals-clearly-foregrounded-and-the-underlying-page-clearly-dimmed-not-visually-blending-with-the-modal-apply-the-fix-consistently-to-dialogs-across-modules-e-g-contacts-add-edit-dialog-and-other-module-dialogs",
+      "featureTitle": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
       "files": [
-        "frontend/src/App.tsx",
+        "frontend/src/components/AdminBackupModule.tsx",
+        "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
+        "frontend/src/components/ContactsModule.tsx",
+        "frontend/src/components/PriceOverrideDialog.tsx",
+        "frontend/src/components/ProfileSetupModal.tsx",
+        "frontend/src/index.css"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-16"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-app-shell-and-module-content-do-not-visually-overlap-or-double-show-behind-overlays-drawers-verify-z-index-stacking-and-backgrounds-for-header-top-navigation-main-content-container-and-mobile-drawer-so-foreground-content-is-always-clearly-separated-from-background-elements",
+      "featureTitle": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
+      "files": [
         "frontend/src/components/AppShell.tsx",
         "frontend/src/components/Header.tsx",
-        "frontend/src/components/ModulePageHeader.tsx",
-        "frontend/src/components/PrimaryNavigation.tsx",
-        "frontend/src/index.css",
-        "frontend/src/pages/Dashboard.tsx",
-        "frontend/tailwind.config.js"
+        "frontend/src/components/MobileNavDrawer.tsx",
+        "frontend/src/index.css"
       ],
       "components": [
         "authorization@4.0.0",
@@ -25,54 +47,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-sorting-options-to-complement-existing-search-autofill-for-the-main-list-table-views-estimates-list-in-billingmodule-purchases-list-in-purchasemodule-products-list-in-productsmodule-and-key-report-tables-in-financemodule-at-minimum-purchase-report-inventory-report-sales-report-product-performance-transactions-provide-a-consistent-sort-ui-field-ascending-descending-and-apply-sorting-client-side-to-the-currently-displayed-filtered-dataset",
-      "featureTitle": "Add sorting options to complement existing search/autofill, for the main list/table views: Estimates list in BillingModule, Purchases list in PurchaseModule, Products list in ProductsModule, and key report tables in FinanceModule (at minimum: Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions). Provide a consistent sort UI (field + ascending/descending) and apply sorting client-side to the currently displayed/filtered dataset.",
-      "files": [
-        "frontend/src/components/SortControls.tsx",
-        "frontend/src/utils/sort.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-6"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-admin-accessible-backup-tooling-to-export-and-import-app-data-so-the-user-can-keep-their-own-backups-and-restore-data-after-redeploys-this-must-include-a-backend-api-to-export-all-persisted-domain-data-products-contacts-estimates-purchases-inventory-snapshots-company-branding-metadata-except-raw-blob-bytes-if-not-feasible-and-an-import-api-that-restores-the-same-dataset-plus-a-frontend-ui-for-admins-to-download-an-export-file-and-upload-an-import-file",
-      "featureTitle": "Add admin-accessible backup tooling to export and import app data so the user can keep their own backups and restore data after redeploys. This must include a backend API to export all persisted domain data (products, contacts, estimates, purchases, inventory snapshots, company branding metadata except raw blob bytes if not feasible) and an import API that restores the same dataset, plus a frontend UI for admins to download an export file and upload an import file.",
-      "files": [
-        "frontend/src/components/AccessDeniedScreen.tsx",
-        "frontend/src/components/AdminBackupModule.tsx",
-        "frontend/src/components/PrimaryNavigation.tsx",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/Dashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-7"
+        "REQ-17"
       ],
       "confidence": "high"
     }

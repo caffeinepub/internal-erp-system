@@ -9,26 +9,26 @@ export default function LoginPage() {
   const isLoggingIn = loginStatus === 'logging-in';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-5xl">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 mb-2">
+            <Building2 className="w-5 h-5 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold mb-2">Internal ERP System</h1>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-2xl font-bold mb-1">Internal ERP System</h1>
+          <p className="text-sm text-muted-foreground">
             Comprehensive business management platform
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield className="w-4 h-4 text-primary" />
                 Optional Authentication
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Login with Internet Identity for personalized access and data persistence
               </CardDescription>
             </CardHeader>
@@ -36,68 +36,71 @@ export default function LoginPage() {
               <Button
                 onClick={login}
                 disabled={isLoggingIn}
-                size="lg"
-                className="w-full"
+                className="w-full h-9 text-sm"
               >
                 {isLoggingIn ? (
                   <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    <div className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
                     Logging in...
                   </>
                 ) : (
                   <>
                     Login with Internet Identity
-                    <ArrowRight className="ml-2 w-4 h-4" />
+                    <ArrowRight className="ml-2 w-3.5 h-3.5" />
                   </>
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="border-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="w-4 h-4 text-primary" />
                 Role-Based Features
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Admin and Manager roles unlock additional capabilities
               </CardDescription>
             </CardHeader>
           </Card>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-3">
           <Card>
-            <CardHeader>
-              <TrendingUp className="w-8 h-8 text-primary mb-2" />
-              <CardTitle className="text-lg">Dashboard & KPIs</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3">
+              <TrendingUp className="w-5 h-5 text-primary mb-1" />
+              <CardTitle className="text-sm">Dashboard & KPIs</CardTitle>
+              <CardDescription className="text-xs">
                 Real-time insights into sales, inventory, and financial metrics
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader>
-              <Building2 className="w-8 h-8 text-primary mb-2" />
-              <CardTitle className="text-lg">Inventory Management</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3">
+              <Building2 className="w-5 h-5 text-primary mb-1" />
+              <CardTitle className="text-sm">Inventory Management</CardTitle>
+              <CardDescription className="text-xs">
                 Track stock levels, categories, and product availability
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader>
-              <Users className="w-8 h-8 text-primary mb-2" />
-              <CardTitle className="text-lg">Customer & Supplier</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3">
+              <Users className="w-5 h-5 text-primary mb-1" />
+              <CardTitle className="text-sm">Customer & Supplier</CardTitle>
+              <CardDescription className="text-xs">
                 Manage contacts and maintain business relationships
               </CardDescription>
             </CardHeader>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-8 text-xs text-muted-foreground font-mono font-semibold">
+        Version 36
       </div>
     </div>
   );

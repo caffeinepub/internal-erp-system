@@ -204,7 +204,7 @@ export default function AdminBackupModule() {
 
       {/* Import Confirmation Dialog */}
       <AlertDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-2 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-destructive" />

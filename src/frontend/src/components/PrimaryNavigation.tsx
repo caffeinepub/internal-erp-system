@@ -34,7 +34,7 @@ const navigationItems: NavigationItem[] = [
 interface PrimaryNavigationProps {
   activeModule: ModuleView;
   onModuleChange: (module: ModuleView) => void;
-  variant: 'sidebar' | 'bottom';
+  variant: 'sidebar' | 'top';
 }
 
 export default function PrimaryNavigation({ activeModule, onModuleChange, variant }: PrimaryNavigationProps) {
@@ -43,14 +43,9 @@ export default function PrimaryNavigation({ activeModule, onModuleChange, varian
 
   const visibleItems = navigationItems.filter(item => !item.adminOnly || isAdmin);
 
-  if (variant === 'sidebar') {
+  if (variant === 'top') {
     return (
-      <nav className="flex flex-col w-full p-4 space-y-2">
-        <div className="mb-4">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
-            Modules
-          </h2>
-        </div>
+      <nav className="flex items-center gap-1 py-2 overflow-x-auto">
         {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeModule === item.id;
@@ -59,13 +54,13 @@ export default function PrimaryNavigation({ activeModule, onModuleChange, varian
               key={item.id}
               variant={isActive ? 'secondary' : 'ghost'}
               className={cn(
-                'w-full justify-start gap-3 h-11',
+                'flex-shrink-0 gap-2 h-8 text-xs px-3',
                 isActive && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
               )}
               onClick={() => onModuleChange(item.id)}
             >
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{item.label}</span>
             </Button>
           );
         })}
@@ -73,28 +68,30 @@ export default function PrimaryNavigation({ activeModule, onModuleChange, varian
     );
   }
 
-  // Bottom navigation for mobile
-  return (
-    <nav className="flex items-center justify-around w-full px-2 py-2">
-      {visibleItems.slice(0, 5).map((item) => {
-        const Icon = item.icon;
-        const isActive = activeModule === item.id;
-        return (
-          <Button
-            key={item.id}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'flex flex-col items-center gap-1 h-auto py-2 px-3',
-              isActive && 'text-primary'
-            )}
-            onClick={() => onModuleChange(item.id)}
-          >
-            <Icon className={cn('w-5 h-5', isActive && 'text-primary')} />
-            <span className="text-xs">{item.label}</span>
-          </Button>
-        );
-      })}
-    </nav>
-  );
+  if (variant === 'sidebar') {
+    return (
+      <nav className="flex flex-col w-full p-2 space-y-0.5">
+        {visibleItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeModule === item.id;
+          return (
+            <Button
+              key={item.id}
+              variant={isActive ? 'secondary' : 'ghost'}
+              className={cn(
+                'w-full justify-start gap-2 h-8 text-xs px-2',
+                isActive && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+              )}
+              onClick={() => onModuleChange(item.id)}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{item.label}</span>
+            </Button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  return null;
 }

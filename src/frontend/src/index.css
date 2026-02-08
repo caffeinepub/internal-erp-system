@@ -67,8 +67,57 @@
   }
 }
 
-@layer utilities {
-  .sidebar-width {
-    width: 16rem;
+/* Enhanced Dialog/Modal Overlay and Content Styling */
+@layer components {
+  /* Dialog Overlay - Stronger, more opaque dimming */
+  [data-radix-dialog-overlay],
+  [data-radix-alert-dialog-overlay] {
+    background-color: oklch(0% 0 0 / 0.75) !important;
+    backdrop-filter: blur(4px);
+    z-index: 50;
+  }
+
+  .dark [data-radix-dialog-overlay],
+  .dark [data-radix-alert-dialog-overlay] {
+    background-color: oklch(0% 0 0 / 0.85) !important;
+  }
+
+  /* Dialog Content - Solid, opaque surface with clear elevation */
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
+    background-color: hsl(var(--card)) !important;
+    border: 2px solid hsl(var(--border)) !important;
+    box-shadow: 0 20px 25px -5px oklch(0% 0 0 / 0.3), 
+                0 10px 10px -5px oklch(0% 0 0 / 0.2) !important;
+    z-index: 51;
+  }
+
+  /* Sheet (Drawer) Overlay - Consistent dimming */
+  [data-radix-sheet-overlay] {
+    background-color: oklch(0% 0 0 / 0.75) !important;
+    backdrop-filter: blur(4px);
+    z-index: 50;
+  }
+
+  .dark [data-radix-sheet-overlay] {
+    background-color: oklch(0% 0 0 / 0.85) !important;
+  }
+
+  /* Sheet Content - Solid panel with clear separation */
+  [data-radix-sheet-content] {
+    background-color: hsl(var(--card)) !important;
+    border: 2px solid hsl(var(--border)) !important;
+    box-shadow: -10px 0 25px -5px oklch(0% 0 0 / 0.3) !important;
+    z-index: 51;
+  }
+
+  /* Ensure header stays below overlays but above content */
+  header {
+    z-index: 40 !important;
+  }
+
+  /* Ensure navigation stays below overlays */
+  nav {
+    z-index: 40 !important;
   }
 }

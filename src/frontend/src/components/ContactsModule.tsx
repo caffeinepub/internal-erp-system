@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useGetAllContacts,
   useAddContact,
   useUpdateContact,
   useDeleteContact,
-  useGetCallerUserRole,
   useGetAllEstimates,
+  useIsCallerAdmin,
 } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,193 +28,94 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Users, Plus, Edit, Trash2 } from 'lucide-react';
 import type { Contact, Variant_purchaser_billTo, Variant_wholesaler_retailer } from '../backend';
+import ModulePageHeader from './ModulePageHeader';
 
 export default function ContactsModule() {
   const { data: contacts = [], isLoading } = useGetAllContacts();
   const { data: estimates = [] } = useGetAllEstimates();
-  const { data: userRole } = useGetCallerUserRole();
+  const { data: isAdmin } = useIsCallerAdmin();
   const addContact = useAddContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
 
-  const isAdmin = userRole === 'admin';
-
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactInfo: '',
     contactType: 'billTo' as Variant_purchaser_billTo,
-    contactCategory: 'wholesaler' as Variant_wholesaler_retailer,
+    contactCategory: 'retailer' as Variant_wholesaler_retailer,
   });
 
-  const purchasers = contacts.filter((c) => c.contactType === 'purchaser');
-  const billToContacts = contacts.filter((c) => c.contactType === 'billTo');
+  const billToContacts = useMemo(() => contacts.filter((c) => c.contactType === 'billTo'), [contacts]);
+  const purchaserContacts = useMemo(() => contacts.filter((c) => c.contactType === 'purchaser'), [contacts]);
 
-  // Calculate pending amount for each Bill To contact
   const calculatePendingAmount = (contactName: string) => {
-    const contactEstimates = estimates.filter(
-      (est) => est.customerName === contactName && !est.isPaid
-    );
-    return contactEstimates.reduce((sum, est) => sum + est.netAmount, 0);
+    return estimates
+      .filter((est) => est.customerName === contactName && !est.isPaid)
+      .reduce((sum, est) => sum + est.pendingAmount, 0);
   };
 
-  const resetForm = () => {
-    setFormData({ 
-      name: '', 
-      contactInfo: '', 
-      contactType: 'billTo' as Variant_purchaser_billTo,
-      contactCategory: 'wholesaler' as Variant_wholesaler_retailer,
-    });
-  };
-
-  const handleAdd = () => {
-    if (formData.name && formData.contactInfo) {
+  const handleSubmit = () => {
+    if (editingContact) {
+      updateContact.mutate(
+        {
+          id: editingContact.id,
+          ...formData,
+        },
+        {
+          onSuccess: () => {
+            setIsDialogOpen(false);
+            setEditingContact(null);
+            resetForm();
+          },
+        }
+      );
+    } else {
       addContact.mutate(formData, {
         onSuccess: () => {
-          setIsAddDialogOpen(false);
+          setIsDialogOpen(false);
           resetForm();
         },
       });
     }
   };
 
-  const handleEdit = () => {
-    if (selectedContact && formData.name && formData.contactInfo) {
-      updateContact.mutate(
-        {
-          id: selectedContact.id,
-          ...formData,
-        },
-        {
-          onSuccess: () => {
-            setIsEditDialogOpen(false);
-            setSelectedContact(null);
-            resetForm();
-          },
-        }
-      );
-    }
-  };
-
-  const handleDeleteConfirm = () => {
-    if (!contactToDelete) return;
-
-    deleteContact.mutate(contactToDelete.id, {
-      onSuccess: () => {
-        setContactToDelete(null);
-      },
-    });
-  };
-
-  const openEditDialog = (contact: Contact) => {
-    setSelectedContact(contact);
+  const handleEdit = (contact: Contact) => {
+    setEditingContact(contact);
     setFormData({
       name: contact.name,
       contactInfo: contact.contactInfo,
       contactType: contact.contactType,
       contactCategory: contact.contactCategory,
     });
-    setIsEditDialogOpen(true);
+    setIsDialogOpen(true);
   };
 
-  const getContactTypeLabel = (contactType: Variant_purchaser_billTo) => {
-    return contactType === 'purchaser' ? 'Purchaser' : 'Bill To';
+  const handleDelete = (contactId: bigint) => {
+    if (confirm('Are you sure you want to delete this contact?')) {
+      deleteContact.mutate(contactId);
+    }
   };
 
-  const getContactCategoryLabel = (contactCategory: Variant_wholesaler_retailer) => {
-    return contactCategory === 'wholesaler' ? 'Wholesaler' : 'Retailer';
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      contactInfo: '',
+      contactType: 'billTo' as Variant_purchaser_billTo,
+      contactCategory: 'retailer' as Variant_wholesaler_retailer,
+    });
   };
-
-  const ContactTable = ({ contactList }: { contactList: Contact[] }) => (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Contact Info</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead className="text-right">Pending Amount</TableHead>
-            {isAdmin && <TableHead className="text-right">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contactList.map((contact) => {
-            const pendingAmount = contact.contactType === 'billTo' ? calculatePendingAmount(contact.name) : 0;
-            return (
-              <TableRow key={contact.id.toString()}>
-                <TableCell className="font-medium">{contact.name}</TableCell>
-                <TableCell>{contact.contactInfo}</TableCell>
-                <TableCell>
-                  <Badge variant={contact.contactType === 'purchaser' ? 'secondary' : 'default'}>
-                    {getContactTypeLabel(contact.contactType)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {getContactCategoryLabel(contact.contactCategory)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {contact.contactType === 'billTo' ? (
-                    <span className={pendingAmount > 0 ? 'font-bold text-destructive' : 'text-muted-foreground'}>
-                      ₹{pendingAmount.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                {isAdmin && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(contact)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setContactToDelete(contact)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -224,131 +125,160 @@ export default function ContactsModule() {
     );
   }
 
+  const renderContactTable = (contactList: Contact[], showPending: boolean) => (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Contact Info</TableHead>
+            <TableHead>Category</TableHead>
+            {showPending && <TableHead>Pending Amount</TableHead>}
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {contactList.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={showPending ? 5 : 4} className="text-center text-muted-foreground">
+                No contacts found
+              </TableCell>
+            </TableRow>
+          ) : (
+            contactList.map((contact) => {
+              const pendingAmount = showPending ? calculatePendingAmount(contact.name) : 0;
+              return (
+                <TableRow key={contact.id.toString()}>
+                  <TableCell className="font-medium">{contact.name}</TableCell>
+                  <TableCell>{contact.contactInfo}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {contact.contactCategory === 'wholesaler' ? 'Wholesaler' : 'Retailer'}
+                    </Badge>
+                  </TableCell>
+                  {showPending && (
+                    <TableCell>
+                      {pendingAmount > 0 ? (
+                        <span className="text-destructive font-semibold">₹{pendingAmount.toFixed(2)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">₹0.00</span>
+                      )}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(contact)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(contact.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="w-8 h-8" />
-            Contact Management
-          </h2>
-          <p className="text-muted-foreground">Manage purchasers and bill-to contacts with pending amounts</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+    <div className="space-y-4">
+      <ModulePageHeader
+        icon={<Users className="w-5 h-5" />}
+        title="Contacts Management"
+        subtitle="Manage customers and suppliers"
+        actions={
+          <Button onClick={() => setIsDialogOpen(true)} size="sm">
+            <Plus className="w-4 h-4 mr-1" />
             Add Contact
           </Button>
-        )}
-      </div>
+        }
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Business Contacts</CardTitle>
-          <CardDescription>
-            View and manage purchasers and bill-to contacts with automatic pending amount tracking
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">All Contacts</CardTitle>
+          <CardDescription className="text-sm">View and manage your business contacts</CardDescription>
         </CardHeader>
         <CardContent>
-          {contacts.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No contacts yet</p>
-              {isAdmin && (
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Contact
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Tabs defaultValue="all" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="all">All Contacts ({contacts.length})</TabsTrigger>
-                <TabsTrigger value="purchasers">Purchasers ({purchasers.length})</TabsTrigger>
-                <TabsTrigger value="billTo">Bill To ({billToContacts.length})</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all">
-                <ContactTable contactList={contacts} />
-              </TabsContent>
-              <TabsContent value="purchasers">
-                {purchasers.length > 0 ? (
-                  <ContactTable contactList={purchasers} />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No purchasers yet
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="billTo">
-                {billToContacts.length > 0 ? (
-                  <ContactTable contactList={billToContacts} />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No bill-to contacts yet
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          )}
+          <Tabs defaultValue="billTo">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="billTo">Bill To ({billToContacts.length})</TabsTrigger>
+              <TabsTrigger value="purchaser">Purchasers ({purchaserContacts.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="billTo" className="mt-4">
+              {renderContactTable(billToContacts, true)}
+            </TabsContent>
+            <TabsContent value="purchaser" className="mt-4">
+              {renderContactTable(purchaserContacts, false)}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
-      {/* Add Contact Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="bg-card border-2 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Add New Contact</DialogTitle>
+            <DialogTitle>{editingContact ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
             <DialogDescription>
-              Enter the details for the new contact
+              {editingContact ? 'Update contact information' : 'Enter contact details'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="add-name">Name</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
-                id="add-name"
+                id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter contact name"
+                placeholder="Contact name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-contact">Contact Information</Label>
+              <Label htmlFor="contactInfo">Contact Info</Label>
               <Input
-                id="add-contact"
+                id="contactInfo"
                 value={formData.contactInfo}
                 onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
-                placeholder="Email, phone, or address"
+                placeholder="Phone or email"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-contact-type">Contact Type</Label>
+              <Label htmlFor="contactType">Contact Type</Label>
               <Select
                 value={formData.contactType}
                 onValueChange={(value) =>
                   setFormData({ ...formData, contactType: value as Variant_purchaser_billTo })
                 }
               >
-                <SelectTrigger id="add-contact-type">
-                  <SelectValue placeholder="Select contact type" />
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="purchaser">Purchaser</SelectItem>
                   <SelectItem value="billTo">Bill To</SelectItem>
+                  <SelectItem value="purchaser">Purchaser</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-contact-category">Category</Label>
+              <Label htmlFor="contactCategory">Category</Label>
               <Select
                 value={formData.contactCategory}
                 onValueChange={(value) =>
                   setFormData({ ...formData, contactCategory: value as Variant_wholesaler_retailer })
                 }
               >
-                <SelectTrigger id="add-contact-category">
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="wholesaler">Wholesaler</SelectItem>
@@ -361,127 +291,31 @@ export default function ContactsModule() {
             <Button
               variant="outline"
               onClick={() => {
-                setIsAddDialogOpen(false);
+                setIsDialogOpen(false);
+                setEditingContact(null);
                 resetForm();
               }}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleAdd}
-              disabled={!formData.name || !formData.contactInfo || addContact.isPending}
+              onClick={handleSubmit}
+              disabled={
+                !formData.name ||
+                !formData.contactInfo ||
+                addContact.isPending ||
+                updateContact.isPending
+              }
             >
-              {addContact.isPending ? 'Adding...' : 'Add Contact'}
+              {addContact.isPending || updateContact.isPending
+                ? 'Saving...'
+                : editingContact
+                  ? 'Update'
+                  : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Edit Contact Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Contact</DialogTitle>
-            <DialogDescription>
-              Update the contact details
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter contact name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-contact">Contact Information</Label>
-              <Input
-                id="edit-contact"
-                value={formData.contactInfo}
-                onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
-                placeholder="Email, phone, or address"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-contact-type">Contact Type</Label>
-              <Select
-                value={formData.contactType}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, contactType: value as Variant_purchaser_billTo })
-                }
-              >
-                <SelectTrigger id="edit-contact-type">
-                  <SelectValue placeholder="Select contact type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="purchaser">Purchaser</SelectItem>
-                  <SelectItem value="billTo">Bill To</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-contact-category">Category</Label>
-              <Select
-                value={formData.contactCategory}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, contactCategory: value as Variant_wholesaler_retailer })
-                }
-              >
-                <SelectTrigger id="edit-contact-category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="wholesaler">Wholesaler</SelectItem>
-                  <SelectItem value="retailer">Retailer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditDialogOpen(false);
-                setSelectedContact(null);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleEdit}
-              disabled={!formData.name || !formData.contactInfo || updateContact.isPending}
-            >
-              {updateContact.isPending ? 'Updating...' : 'Update Contact'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!contactToDelete} onOpenChange={() => setContactToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the contact "{contactToDelete?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteContact.isPending}
-            >
-              {deleteContact.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

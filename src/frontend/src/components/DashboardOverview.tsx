@@ -2,6 +2,7 @@ import { useGetAllProducts, useGetAllContacts } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, Users, TrendingUp, AlertTriangle, ShoppingCart, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import ModulePageHeader from './ModulePageHeader';
 
 export default function DashboardOverview() {
   const { data: products = [], isLoading: productsLoading } = useGetAllProducts();
@@ -26,13 +27,13 @@ export default function DashboardOverview() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">Overview of your business operations</p>
-      </div>
+    <div className="space-y-4">
+      <ModulePageHeader
+        title="Dashboard"
+        subtitle="Overview of your business operations"
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -86,14 +87,14 @@ export default function DashboardOverview() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShoppingCart className="w-4 h-4" />
               Product Categories
             </CardTitle>
-            <CardDescription>Active product categories in inventory</CardDescription>
+            <CardDescription className="text-sm">Active product categories in inventory</CardDescription>
           </CardHeader>
           <CardContent>
             {categories.length > 0 ? (
@@ -114,27 +115,27 @@ export default function DashboardOverview() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="w-4 h-4" />
               Business Contacts
             </CardTitle>
-            <CardDescription>Contact type overview</CardDescription>
+            <CardDescription className="text-sm">Contact type overview</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-primary" />
                 <span className="text-sm font-medium">Bill To</span>
               </div>
-              <span className="text-2xl font-bold">{billToContacts.length}</span>
+              <span className="text-xl font-bold">{billToContacts.length}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-secondary" />
                 <span className="text-sm font-medium">Purchasers</span>
               </div>
-              <span className="text-2xl font-bold">{purchasers.length}</span>
+              <span className="text-xl font-bold">{purchasers.length}</span>
             </div>
           </CardContent>
         </Card>
@@ -142,12 +143,12 @@ export default function DashboardOverview() {
 
       {lowStockProducts > 0 && (
         <Card className="border-destructive/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-destructive text-base">
+              <AlertTriangle className="w-4 h-4" />
               Low Stock Warning
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               The following products have low stock levels and may need restocking
             </CardDescription>
           </CardHeader>
@@ -162,8 +163,8 @@ export default function DashboardOverview() {
                     className="flex items-center justify-between py-2 border-b last:border-0"
                   >
                     <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">{product.category}</p>
+                      <p className="font-medium text-sm">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.category}</p>
                     </div>
                     <Badge variant="destructive">{Number(product.stockQuantity)} units</Badge>
                   </div>
