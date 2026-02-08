@@ -168,6 +168,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
+    isOpenAccess(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     markEstimateAsPaid(estimateId: bigint): Promise<void>;
     printEstimate(estimateId: bigint): Promise<EstimatePrintData>;
@@ -179,10 +180,12 @@ export interface backendInterface {
     searchTransactions(search: string): Promise<Array<Transaction>>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     setCompanyBranding(name: string, address: string, logo: ExternalBlob | null): Promise<void>;
+    toggleOpenAccess(value: boolean): Promise<void>;
     updateContact(contactId: bigint, name: string, contactInfo: string, contactType: Variant_purchaser_billTo, contactCategory: Variant_wholesaler_retailer): Promise<void>;
     updateEstimate(estimateId: bigint, customerName: string, customerAddress: string, lineItems: Array<EstimateItem>, totalAmount: number, netAmount: number, isPaid: boolean, pendingAmount: number, paidAmount: number, paymentReceivedTimestamp: Time | null): Promise<void>;
     updateProduct(productId: bigint, name: string, category: string, price: number): Promise<void>;
     updatePurchase(purchaseId: bigint, item: string, quantity: bigint, costPrice: number, sellingPrice: number, purchaser: string, notes: string, hasOverride: boolean): Promise<void>;
     updateStock(productId: bigint, quantity: bigint): Promise<void>;
     validatePricing(costPrice: number, sellingPrice: number): Promise<boolean>;
+    validateUser(): Promise<boolean>;
 }

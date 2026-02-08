@@ -1,78 +1,65 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Improve modal/drawer layering, overlay dimming, and surface contrast across the app",
+  "title": "Open access: remove Internet Identity login gating from the ERP frontend",
   "requirements": [
     {
-      "id": "REQ-16",
-      "summary": "Make all dialogs/modals clearly foregrounded with a uniform dimmed overlay and an opaque, high-contrast modal surface across modules (including Contacts add/edit).",
+      "id": "REQ-18",
+      "summary": "Always render the main Dashboard flow (AppShell + modules) without requiring Internet Identity login and without showing the LoginPage as a gate.",
       "acceptanceCriteria": [
-        "When any Dialog/Modal is open, the page behind it is uniformly dimmed with a clearly visible overlay (no patchy/see-through blending that makes the background look like part of the modal).",
-        "Dialog content uses a solid, opaque surface (e.g., card/background) with clear border/shadow so the modal is visually distinct from the background.",
-        "Text and form fields inside the modal remain high-contrast and readable in both light and dark themes.",
-        "The ContactsModule “Add New Contact” dialog (and edit dialog) matches this improved behavior."
+        "Opening the app in a fresh browser session shows the Dashboard (not the LoginPage) without any login action.",
+        "No user-facing message implies that login is required to use core modules (Products, Inventory, Contacts, Purchasing, Billing, Finance)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add global styling overrides for shadcn-ui (Radix) Dialog/AlertDialog layering: enforce a uniform, opaque overlay dim (light/dark), ensure overlay/content z-index ordering above the app shell, and ensure dialog surfaces are fully opaque with consistent border/shadow. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/ContactsModule.tsx",
-          "operation": "modify",
-          "description": "Update the shadcn-ui Dialog usage to pass an explicit DialogContent className that ensures an opaque surface (bg/background), clear border, and stronger shadow; apply consistently for both add and edit contact flows. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetupModal.tsx",
-          "operation": "modify",
-          "description": "Strengthen shadcn-ui DialogContent visual separation by adding/adjusting className for an opaque surface and readable typography in light/dark themes. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/PriceOverrideDialog.tsx",
-          "operation": "modify",
-          "description": "Ensure the shadcn-ui DialogContent has a solid surface and clear elevation (border/shadow) so pricing warning modal is visually distinct from the background. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
-          "operation": "modify",
-          "description": "Adjust the shadcn-ui DialogContent container styling (via className) to ensure the dialog surface is opaque and readable; avoid any background blending inside the scrollable content area. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/AdminBackupModule.tsx",
-          "operation": "modify",
-          "description": "Update shadcn-ui AlertDialogContent styling (via className) so confirmation dialogs use an opaque surface with clear border/shadow and remain distinct over the dimmed overlay. Verify the component's usage instructions before implementing."
+          "description": "Update the root render flow to always show the main Dashboard UI instead of conditionally gating on Internet Identity authentication (do not route/branch to LoginPage). Keep existing initialization/loading handling, but remove login-blocking. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-17",
-      "summary": "Prevent visual overlap between app shell (Header/top nav/content) and overlays/drawers by verifying stacking contexts, z-index, and solid backgrounds for header/nav and mobile drawer.",
+      "id": "REQ-19",
+      "summary": "Disable first-time profile setup gating in open mode so anonymous users are never prompted with ProfileSetupModal.",
       "acceptanceCriteria": [
-        "Header and top navigation remain clearly separated from the page (solid background + border) and do not visually bleed into underlying content when scrolling.",
-        "On mobile, opening the navigation drawer shows a clear, distinct drawer surface over a dimmed background; underlying module content does not compete visually with the drawer.",
-        "No UI state shows both navigation overlay and module content in a way that appears merged (consistent separation on all modules)."
+        "When not logged in, the ProfileSetupModal never appears.",
+        "The app remains usable without creating/saving a user profile."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Verify and adjust header stacking/background behavior: ensure header background is solid/opaque, maintains separation while sticky, and does not visually blend with underlying content (including while overlays are open)."
+          "description": "Ensure ProfileSetupModal is strictly conditioned on authenticated state (and does not appear for anonymous/open access users), even while the rest of the app renders. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/AppShell.tsx",
+          "path": "frontend/src/components/ProfileSetupModal.tsx",
           "operation": "modify",
-          "description": "Verify overall layout stacking contexts for header/top navigation/main container so overlays (dialogs/sheets) always appear above shell elements and the shell never appears 'double shown' behind them; adjust container classes if needed (no changes to ui component sources)."
+          "description": "Add a defensive guard so the modal cannot be shown/used in anonymous mode (e.g., early-return null when the app is not authenticated) to prevent future regressions. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "summary": "Fetch and resolve roles in open mode by allowing role queries to run without an Internet Identity (anonymous actor), so admin/role-gated UI works (e.g., Backup module visibility/access).",
+      "acceptanceCriteria": [
+        "The app can fetch and display a user role even when not logged in (no Internet Identity identity present).",
+        "Admin-only sections that depend on role (e.g., Backup module) are accessible in open mode when the backend reports an admin role."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Adjust the role-fetching query (useGetCallerUserRole) to execute when an actor is available even if no Internet Identity is present (anonymous mode). Update query keying to remain stable for anonymous callers and avoid unnecessary refetch loops. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/MobileNavDrawer.tsx",
+          "path": "frontend/src/pages/Dashboard.tsx",
           "operation": "modify",
-          "description": "Strengthen shadcn-ui SheetContent surface styling (via className) so the drawer has a clear, opaque panel with distinct border/shadow; rely on global overlay dimming for background separation. Verify the component's usage instructions before implementing."
+          "description": "Ensure admin gating for the Backup module relies on the resolved role from useGetCallerUserRole in open mode (handle loading/undefined role states gracefully so the UI updates once role is fetched). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/components/PrimaryNavigation.tsx",
           "operation": "modify",
-          "description": "Add/adjust global stacking + overlay styles affecting shadcn-ui Sheet (drawer) and other portals: ensure overlay dim is uniform and that drawer/modal portals have consistent z-index above header/nav/content across modules. Verify the component's usage instructions before implementing."
+          "description": "Ensure admin-only navigation visibility (Backup) updates correctly based on the role fetched in open mode (anonymous callers), including initial/loading states. Verify the component's usage instructions before implementing."
         }
       ]
     }

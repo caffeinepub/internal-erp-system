@@ -1,16 +1,14 @@
 import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile, useGetCallerUserRole } from './hooks/useQueries';
+import { useGetCallerUserProfile } from './hooks/useQueries';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import Dashboard from './pages/Dashboard';
-import LoginPage from './pages/LoginPage';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 export default function App() {
   const { identity, isInitializing } = useInternetIdentity();
   const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-  const { data: userRole, isLoading: roleLoading } = useGetCallerUserRole();
 
   const isAuthenticated = !!identity;
 
@@ -34,14 +32,8 @@ export default function App() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {!isAuthenticated ? (
-        <LoginPage />
-      ) : (
-        <>
-          <Dashboard />
-          {showProfileSetup && <ProfileSetupModal />}
-        </>
-      )}
+      <Dashboard />
+      {showProfileSetup && <ProfileSetupModal />}
       <PWAInstallPrompt />
       <Toaster />
     </ThemeProvider>

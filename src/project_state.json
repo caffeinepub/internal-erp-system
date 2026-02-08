@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 51,
+  "projectStateVersion": 53,
   "summary": "Internal ERP System is a web-based business management app deployed on the Internet Computer. The React/Tailwind frontend authenticates users via Internet Identity and communicates with a Motoko canister backend through a generated actor interface. The system supports role-based access control and admin/user governance (including UI for access control and password-based admin setup/change flows), user profile setup, product catalog management, inventory stock updates, customer/supplier contact management, estimate (billing) creation and payment marking, company branding (including logo as an ExternalBlob), print-ready estimate previews, and a Purchasing module to record received purchases. It also includes a dashboard with basic KPIs and a finance module with derived inventory/value metrics, plus PWA install/offline support via manifest and service worker caching.",
   "architectural_notes": [
     "Frontend uses React + TypeScript with @tanstack/react-query for query/mutation orchestration, cache invalidation, and identity-scoped actor recreation.",
@@ -26,7 +26,7 @@
     "User requests reverting to Version 36 (current deployed version v39 not desired).",
     "User feedback: Production v41 UI still has confusing background/overlap; selected module content is not clearly separated/foregrounded."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "IF-1",
@@ -411,6 +411,30 @@
         "REQ-17"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-make-the-app-accessible-without-requiring-internet-identity-login-by-updating-the-root-app-flow-to-always-render-the-main-dashboard-appshell-modules-and-never-block-on-the-loginpage",
+      "title": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-disable-first-time-profile-setup-gating-for-open-access-so-anonymous-users-are-not-prompted-for-profilesetupmodal-when-using-the-app-without-login",
+      "title": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-allow-role-and-admin-gated-ui-e-g-backup-module-to-function-in-open-mode-by-adjusting-frontend-role-fetching-so-it-can-resolve-a-role-even-when-the-current-identity-is-absent-anonymous-actor",
+      "title": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -504,6 +528,28 @@
       "id": "AR-22",
       "summary": "Fix UI visual clarity: eliminate confusing background/overlap so selected module content is clearly foregrounded and navigation/content do not visually blend",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Remove login/authentication requirements and make the app openly accessible (no login credentials / open access)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
+      "reqIds": [
+        "REQ-22"
+      ],
       "status": "pending"
     }
   ],

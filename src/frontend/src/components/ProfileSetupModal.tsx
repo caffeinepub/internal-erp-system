@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSaveCallerUserProfile } from '../hooks/useQueries';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,12 @@ import { Button } from '@/components/ui/button';
 export default function ProfileSetupModal() {
   const [name, setName] = useState('');
   const saveProfile = useSaveCallerUserProfile();
+  const { identity } = useInternetIdentity();
+
+  // Defensive guard: do not show modal in anonymous mode
+  if (!identity) {
+    return null;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

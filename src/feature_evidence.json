@@ -2,15 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-confusing-unclear-background-layering-shown-in-the-uploaded-screenshot-by-making-dialogs-modals-clearly-foregrounded-and-the-underlying-page-clearly-dimmed-not-visually-blending-with-the-modal-apply-the-fix-consistently-to-dialogs-across-modules-e-g-contacts-add-edit-dialog-and-other-module-dialogs",
-      "featureTitle": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
+      "featureId": "feature-make-the-app-accessible-without-requiring-internet-identity-login-by-updating-the-root-app-flow-to-always-render-the-main-dashboard-appshell-modules-and-never-block-on-the-loginpage",
+      "featureTitle": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
       "files": [
-        "frontend/src/components/AdminBackupModule.tsx",
-        "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
-        "frontend/src/components/ContactsModule.tsx",
-        "frontend/src/components/PriceOverrideDialog.tsx",
-        "frontend/src/components/ProfileSetupModal.tsx",
-        "frontend/src/index.css"
+        "frontend/src/App.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,18 +18,16 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-16"
+        "REQ-18"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-app-shell-and-module-content-do-not-visually-overlap-or-double-show-behind-overlays-drawers-verify-z-index-stacking-and-backgrounds-for-header-top-navigation-main-content-container-and-mobile-drawer-so-foreground-content-is-always-clearly-separated-from-background-elements",
-      "featureTitle": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
+      "featureId": "feature-disable-first-time-profile-setup-gating-for-open-access-so-anonymous-users-are-not-prompted-for-profilesetupmodal-when-using-the-app-without-login",
+      "featureTitle": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
       "files": [
-        "frontend/src/components/AppShell.tsx",
-        "frontend/src/components/Header.tsx",
-        "frontend/src/components/MobileNavDrawer.tsx",
-        "frontend/src/index.css"
+        "frontend/src/App.tsx",
+        "frontend/src/components/ProfileSetupModal.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -47,7 +40,30 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-17"
+        "REQ-19"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-allow-role-and-admin-gated-ui-e-g-backup-module-to-function-in-open-mode-by-adjusting-frontend-role-fetching-so-it-can-resolve-a-role-even-when-the-current-identity-is-absent-anonymous-actor",
+      "featureTitle": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+      "files": [
+        "frontend/src/components/PrimaryNavigation.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/Dashboard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-20"
       ],
       "confidence": "high"
     }

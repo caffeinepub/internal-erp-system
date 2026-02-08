@@ -1,63 +1,119 @@
 {
   "kind": "build_request",
-  "title": "Improve UI background clarity and modal contrast (reduce confusing overlap)",
-  "priority": "high",
+  "title": "Remove login/authentication and make the ERP app openly accessible",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-16",
-      "text": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
+      "id": "REQ-18",
+      "text": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Not happy, still the background is confusing make it clear and visible",
-          "Screenshot_20260208-213057.png"
+          "Remove login credentials and make it open"
         ]
       },
       "acceptanceCriteria": [
-        "When any Dialog/Modal is open, the page behind it is uniformly dimmed with a clearly visible overlay (no patchy/see-through blending that makes the background look like part of the modal).",
-        "Dialog content uses a solid, opaque surface (e.g., card/background) with clear border/shadow so the modal is visually distinct from the background.",
-        "Text and form fields inside the modal remain high-contrast and readable in both light and dark themes.",
-        "The ContactsModule “Add New Contact” dialog (and edit dialog) matches this improved behavior."
+        "Opening the app in a fresh browser session shows the Dashboard (not the LoginPage) without any login action.",
+        "No user-facing message implies that login is required to use core modules (Products, Inventory, Contacts, Purchasing, Billing, Finance)."
       ]
     },
     {
-      "id": "REQ-17",
-      "text": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
+      "id": "REQ-19",
+      "text": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "still the background is confusing make it clear and visible"
+          "Remove login credentials and make it open"
         ]
       },
       "acceptanceCriteria": [
-        "Header and top navigation remain clearly separated from the page (solid background + border) and do not visually bleed into underlying content when scrolling.",
-        "On mobile, opening the navigation drawer shows a clear, distinct drawer surface over a dimmed background; underlying module content does not compete visually with the drawer.",
-        "No UI state shows both navigation overlay and module content in a way that appears merged (consistent separation on all modules)."
+        "When not logged in, the ProfileSetupModal never appears.",
+        "The app remains usable without creating/saving a user profile."
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "text": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Remove login credentials and make it open"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The app can fetch and display a user role even when not logged in (no Internet Identity identity present).",
+        "Admin-only sections that depend on role (e.g., Backup module) are accessible in open mode when the backend reports an admin role."
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "text": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Remove login credentials and make it open"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All backend methods that currently guard with AccessControl.hasPermission(...) succeed for anonymous callers when open access is enabled (no Runtime.trap('Unauthorized...') for anonymous).",
+        "Anonymous callers can perform CRUD actions across modules (Products, Inventory, Contacts, Purchasing, Billing/Estimates) successfully.",
+        "Anonymous callers can export and import backups successfully."
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "text": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Remove login credentials and make it open"
+        ]
+      },
+      "acceptanceCriteria": [
+        "isCallerApproved returns true for anonymous callers in open mode.",
+        "getCallerUserRole returns 'admin' (or the app’s highest role) for anonymous callers in open mode.",
+        "isCallerAdmin returns true for anonymous callers in open mode.",
+        "The Backup module can be opened in the UI without logging in and without showing an access denied screen."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (read-only component sources); apply fixes via composition (props/className) and/or global CSS (e.g., frontend/src/index.css).",
-    "Do not add or integrate any payment, billing, subscription, or credit-debit logic; this change request is UI clarity only."
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or any other paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
+    "Backend must remain a single Motoko actor with all logic in backend/main.mo (add backend/migration.mo only if a state migration is required).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Handling user billing, refunds, credits, or payment disputes.",
-    "Changing ERP domain behavior (products, inventory, contacts, billing, purchasing, finance calculations)."
+    "Implementing third-party authentication providers or alternative auth mechanisms (only Internet Identity exists, but this change is to make login unnecessary).",
+    "Adding new business features unrelated to open access (e.g., new reports, new inventory automation rules).",
+    "Changing UI styling/theme beyond what is necessary to remove login gating."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
   },
   "userProfileUpdate": {
-    "goalsToAdd": [],
+    "goalsToAdd": [
+      "Make the ERP app openly accessible without login credentials"
+    ],
     "goalsToRemove": [],
-    "preferencesToAdd": [],
+    "preferencesToAdd": [
+      "Remove login gates and authorization traps for anonymous users"
+    ],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

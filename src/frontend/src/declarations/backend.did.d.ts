@@ -197,6 +197,7 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
+  'isOpenAccess' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'markEstimateAsPaid' : ActorMethod<[bigint], undefined>,
   'printEstimate' : ActorMethod<[bigint], EstimatePrintData>,
@@ -214,6 +215,7 @@ export interface _SERVICE {
     [string, string, [] | [ExternalBlob]],
     undefined
   >,
+  'toggleOpenAccess' : ActorMethod<[boolean], undefined>,
   'updateContact' : ActorMethod<
     [
       bigint,
@@ -248,6 +250,7 @@ export interface _SERVICE {
   >,
   'updateStock' : ActorMethod<[bigint, bigint], undefined>,
   'validatePricing' : ActorMethod<[number, number], boolean>,
+  'validateUser' : ActorMethod<[], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

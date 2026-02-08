@@ -240,6 +240,7 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+  'isOpenAccess' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
   'markEstimateAsPaid' : IDL.Func([IDL.Nat], [], []),
   'printEstimate' : IDL.Func([IDL.Nat], [EstimatePrintData], ['query']),
@@ -263,6 +264,7 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'toggleOpenAccess' : IDL.Func([IDL.Bool], [], []),
   'updateContact' : IDL.Func(
       [
         IDL.Nat,
@@ -315,6 +317,7 @@ export const idlService = IDL.Service({
       [IDL.Bool],
       ['query'],
     ),
+  'validateUser' : IDL.Func([], [IDL.Bool], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -558,6 +561,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
+    'isOpenAccess' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
     'markEstimateAsPaid' : IDL.Func([IDL.Nat], [], []),
     'printEstimate' : IDL.Func([IDL.Nat], [EstimatePrintData], ['query']),
@@ -581,6 +585,7 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'toggleOpenAccess' : IDL.Func([IDL.Bool], [], []),
     'updateContact' : IDL.Func(
         [
           IDL.Nat,
@@ -633,6 +638,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Bool],
         ['query'],
       ),
+    'validateUser' : IDL.Func([], [IDL.Bool], ['query']),
   });
 };
 

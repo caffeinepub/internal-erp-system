@@ -1,69 +1,87 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T16:07:18.120Z",
+  "generatedAt": "2026-02-08T16:24:22.269Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-16",
-        "summary": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
+        "id": "REQ-18",
+        "summary": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/components/ContactsModule.tsx",
-          "frontend/src/components/ProfileSetupModal.tsx",
-          "frontend/src/components/PriceOverrideDialog.tsx",
-          "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
-          "frontend/src/components/AdminBackupModule.tsx"
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/components/ContactsModule.tsx",
-          "frontend/src/components/ProfileSetupModal.tsx",
-          "frontend/src/components/PriceOverrideDialog.tsx",
-          "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
-          "frontend/src/components/AdminBackupModule.tsx"
+          "frontend/src/App.tsx"
         ]
       },
       {
-        "id": "REQ-17",
-        "summary": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
+        "id": "REQ-19",
+        "summary": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Header.tsx",
-          "frontend/src/components/AppShell.tsx",
-          "frontend/src/components/MobileNavDrawer.tsx",
-          "frontend/src/index.css"
+          "frontend/src/App.tsx",
+          "frontend/src/components/ProfileSetupModal.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx",
-          "frontend/src/components/AppShell.tsx",
-          "frontend/src/components/MobileNavDrawer.tsx",
-          "frontend/src/index.css"
+          "frontend/src/App.tsx",
+          "frontend/src/components/ProfileSetupModal.tsx"
         ]
+      },
+      {
+        "id": "REQ-20",
+        "summary": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/components/PrimaryNavigation.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/Dashboard.tsx",
+          "frontend/src/components/PrimaryNavigation.tsx"
+        ]
+      },
+      {
+        "id": "REQ-21",
+        "summary": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-22",
+        "summary": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/AdminBackupModule.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
     "frontend/src/components/AppShell.tsx",
-    "frontend/src/components/BluetoothPrinterRequirementsDialog.tsx",
-    "frontend/src/components/ContactsModule.tsx",
-    "frontend/src/components/Header.tsx",
     "frontend/src/components/MobileNavDrawer.tsx",
-    "frontend/src/components/PriceOverrideDialog.tsx",
+    "frontend/src/components/PrimaryNavigation.tsx",
     "frontend/src/components/ProfileSetupModal.tsx",
-    "frontend/src/index.css",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/Dashboard.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

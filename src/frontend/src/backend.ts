@@ -261,6 +261,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
+    isOpenAccess(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
     markEstimateAsPaid(estimateId: bigint): Promise<void>;
     printEstimate(estimateId: bigint): Promise<EstimatePrintData>;
@@ -272,12 +273,14 @@ export interface backendInterface {
     searchTransactions(search: string): Promise<Array<Transaction>>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     setCompanyBranding(name: string, address: string, logo: ExternalBlob | null): Promise<void>;
+    toggleOpenAccess(value: boolean): Promise<void>;
     updateContact(contactId: bigint, name: string, contactInfo: string, contactType: Variant_purchaser_billTo, contactCategory: Variant_wholesaler_retailer): Promise<void>;
     updateEstimate(estimateId: bigint, customerName: string, customerAddress: string, lineItems: Array<EstimateItem>, totalAmount: number, netAmount: number, isPaid: boolean, pendingAmount: number, paidAmount: number, paymentReceivedTimestamp: Time | null): Promise<void>;
     updateProduct(productId: bigint, name: string, category: string, price: number): Promise<void>;
     updatePurchase(purchaseId: bigint, item: string, quantity: bigint, costPrice: number, sellingPrice: number, purchaser: string, notes: string, hasOverride: boolean): Promise<void>;
     updateStock(productId: bigint, quantity: bigint): Promise<void>;
     validatePricing(costPrice: number, sellingPrice: number): Promise<boolean>;
+    validateUser(): Promise<boolean>;
 }
 import type { ApprovalStatus as _ApprovalStatus, BackupData as _BackupData, CompanyBranding as _CompanyBranding, Contact as _Contact, Estimate as _Estimate, EstimateItem as _EstimateItem, EstimatePrintData as _EstimatePrintData, ExternalBlob as _ExternalBlob, InventoryItem as _InventoryItem, PriceOverrideRequest as _PriceOverrideRequest, Product as _Product, Purchase as _Purchase, Time as _Time, Transaction as _Transaction, TransactionType as _TransactionType, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -764,6 +767,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async isOpenAccess(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isOpenAccess();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isOpenAccess();
+            return result;
+        }
+    }
     async listApprovals(): Promise<Array<UserApprovalInfo>> {
         if (this.processError) {
             try {
@@ -918,6 +935,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async toggleOpenAccess(arg0: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.toggleOpenAccess(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.toggleOpenAccess(arg0);
+            return result;
+        }
+    }
     async updateContact(arg0: bigint, arg1: string, arg2: string, arg3: Variant_purchaser_billTo, arg4: Variant_wholesaler_retailer): Promise<void> {
         if (this.processError) {
             try {
@@ -999,6 +1030,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.validatePricing(arg0, arg1);
+            return result;
+        }
+    }
+    async validateUser(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.validateUser();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.validateUser();
             return result;
         }
     }

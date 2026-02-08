@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Improve UI layering clarity so modals/dialogs and navigation overlays are clearly separated from the background content (no confusing visual blending).
+**Goal:** Remove login/authentication requirements so the ERP app is openly accessible, including role-gated areas, without unauthorized errors for anonymous users.
 
 **Planned changes:**
-- Standardize dialog/modal presentation so the modal surface is fully opaque with clear border/shadow and the page behind is uniformly dimmed via a consistent overlay.
-- Apply the improved modal layering/contrast consistently across modules, including the Contacts “Add New Contact” and edit dialogs.
-- Review and adjust app shell layering (z-index and backgrounds) for header/top navigation, main content container, and mobile drawer so overlays/drawers don’t “double show” or visually merge with underlying content.
+- Update the frontend root flow to always render the main Dashboard (AppShell + modules) and never route/block on the LoginPage.
+- Disable first-time profile setup gating so ProfileSetupModal does not appear for anonymous/open access usage.
+- Adjust frontend role fetching/handling so role/admin-gated UI can resolve a role even when no Internet Identity is present.
+- Add a backend “open access” behavior to bypass authorization/approval checks for anonymous callers across all domain operations.
+- In open access mode, make backend role/approval APIs return permissive values (approved + admin-equivalent) so existing frontend role gating works without login.
 
-**User-visible outcome:** When opening any modal/dialog or the mobile navigation drawer, the foreground surface is clearly readable and distinct, while the underlying page is uniformly dimmed and does not visually blend or overlap with the overlay.
+**User-visible outcome:** Opening the app in a fresh session goes straight to the Dashboard with core modules usable without logging in, and admin-gated areas (e.g., Backup) can be accessed without an access denied or unauthorized error.

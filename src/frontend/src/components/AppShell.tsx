@@ -10,9 +10,10 @@ interface AppShellProps {
   children: ReactNode;
   activeModule: ModuleView;
   onModuleChange: (module: ModuleView) => void;
+  isAdmin?: boolean;
 }
 
-export default function AppShell({ children, activeModule, onModuleChange }: AppShellProps) {
+export default function AppShell({ children, activeModule, onModuleChange, isAdmin = false }: AppShellProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
@@ -26,6 +27,7 @@ export default function AppShell({ children, activeModule, onModuleChange }: App
             variant="top"
             activeModule={activeModule}
             onModuleChange={onModuleChange}
+            isAdmin={isAdmin}
           />
         </div>
       </nav>
@@ -39,6 +41,7 @@ export default function AppShell({ children, activeModule, onModuleChange }: App
           onModuleChange(module);
           setIsMobileNavOpen(false);
         }}
+        isAdmin={isAdmin}
       />
 
       <main className="flex-1 container mx-auto px-3 py-4 max-w-7xl">

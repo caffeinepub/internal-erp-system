@@ -1,27 +1,35 @@
 import { useState } from 'react';
-import { useGetCallerUserRole } from '../hooks/useQueries';
 import AppShell from '../components/AppShell';
 import DashboardOverview from '../components/DashboardOverview';
 import InventoryModule from '../components/InventoryModule';
 import ContactsModule from '../components/ContactsModule';
 import ProductsModule from '../components/ProductsModule';
-import FinanceModule from '../components/FinanceModule';
-import BillingModule from '../components/BillingModule';
 import PurchaseModule from '../components/PurchaseModule';
+import BillingModule from '../components/BillingModule';
+import FinanceModule from '../components/FinanceModule';
 import AdminBackupModule from '../components/AdminBackupModule';
-import AccessDeniedScreen from '../components/AccessDeniedScreen';
+import { useGetCallerUserRole } from '../hooks/useQueries';
+import { UserRole } from '../backend';
 
-export type ModuleView = 'dashboard' | 'inventory' | 'contacts' | 'products' | 'purchase' | 'billing' | 'finance' | 'backup';
+export type ModuleView = 
+  | 'overview' 
+  | 'inventory' 
+  | 'contacts' 
+  | 'products' 
+  | 'purchase' 
+  | 'billing' 
+  | 'finance'
+  | 'backup';
 
 export default function Dashboard() {
-  const [activeModule, setActiveModule] = useState<ModuleView>('dashboard');
-  const { data: userRole } = useGetCallerUserRole();
-  const isAdmin = userRole === 'admin';
+  const [activeModule, setActiveModule] = useState<ModuleView>('overview');
+  const { data: userRole, isLoading: roleLoading } = useGetCallerUserRole();
 
-  // Render the active module content
-  const renderModuleContent = () => {
+  const isAdmin = userRole === UserRole.admin;
+
+  const renderModule = () => {
     switch (activeModule) {
-      case 'dashboard':
+      case 'overview':
         return <DashboardOverview />;
       case 'inventory':
         return <InventoryModule />;
@@ -36,15 +44,20 @@ export default function Dashboard() {
       case 'finance':
         return <FinanceModule />;
       case 'backup':
-        return isAdmin ? <AdminBackupModule /> : <AccessDeniedScreen />;
+        // Show backup module when role is loaded and user is admin
+        return !roleLoading && isAdmin ? <AdminBackupModule /> : <DashboardOverview />;
       default:
         return <DashboardOverview />;
     }
   };
 
   return (
-    <AppShell activeModule={activeModule} onModuleChange={setActiveModule}>
-      {renderModuleContent()}
+    <AppShell 
+      activeModule={activeModule} 
+      onModuleChange={setActiveModule}
+      isAdmin={isAdmin}
+    >
+      {renderModule()}
     </AppShell>
   );
 }

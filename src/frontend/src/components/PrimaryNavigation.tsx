@@ -1,97 +1,83 @@
-import { useGetCallerUserRole } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  ShoppingCart, 
-  ShoppingBag, 
-  FileText, 
-  DollarSign,
-  Database
-} from 'lucide-react';
-import type { ModuleView } from '../pages/Dashboard';
+import { Package, Users, ShoppingCart, FileText, DollarSign, BarChart3, Database, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface NavigationItem {
-  id: ModuleView;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
-}
-
-const navigationItems: NavigationItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'contacts', label: 'Contacts', icon: Users },
-  { id: 'products', label: 'Products', icon: ShoppingCart },
-  { id: 'purchase', label: 'Purchase', icon: ShoppingBag },
-  { id: 'billing', label: 'Billing', icon: FileText },
-  { id: 'finance', label: 'Finance', icon: DollarSign },
-  { id: 'backup', label: 'Backup', icon: Database, adminOnly: true },
-];
+import type { ModuleView } from '../pages/Dashboard';
 
 interface PrimaryNavigationProps {
   activeModule: ModuleView;
   onModuleChange: (module: ModuleView) => void;
-  variant: 'sidebar' | 'top';
+  variant?: 'top' | 'sidebar';
+  isAdmin?: boolean;
 }
 
-export default function PrimaryNavigation({ activeModule, onModuleChange, variant }: PrimaryNavigationProps) {
-  const { data: userRole } = useGetCallerUserRole();
-  const isAdmin = userRole === 'admin';
+const navigationItems = [
+  { id: 'overview' as ModuleView, label: 'Overview', icon: LayoutDashboard },
+  { id: 'products' as ModuleView, label: 'Products', icon: Package },
+  { id: 'inventory' as ModuleView, label: 'Inventory', icon: ShoppingCart },
+  { id: 'contacts' as ModuleView, label: 'Contacts', icon: Users },
+  { id: 'purchase' as ModuleView, label: 'Purchasing', icon: ShoppingCart },
+  { id: 'billing' as ModuleView, label: 'Billing', icon: FileText },
+  { id: 'finance' as ModuleView, label: 'Finance', icon: DollarSign },
+  { id: 'backup' as ModuleView, label: 'Backup', icon: Database, adminOnly: true },
+];
 
-  const visibleItems = navigationItems.filter(item => !item.adminOnly || isAdmin);
+export default function PrimaryNavigation({ 
+  activeModule, 
+  onModuleChange, 
+  variant = 'top',
+  isAdmin = false 
+}: PrimaryNavigationProps) {
+  const filteredItems = navigationItems.filter(item => !item.adminOnly || isAdmin);
 
   if (variant === 'top') {
     return (
-      <nav className="flex items-center gap-1 py-2 overflow-x-auto">
-        {visibleItems.map((item) => {
+      <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide px-2">
+        {filteredItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeModule === item.id;
+          
           return (
-            <Button
+            <button
               key={item.id}
-              variant={isActive ? 'secondary' : 'ghost'}
-              className={cn(
-                'flex-shrink-0 gap-2 h-8 text-xs px-3',
-                isActive && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
-              )}
               onClick={() => onModuleChange(item.id)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="h-4 w-4" />
               <span>{item.label}</span>
-            </Button>
+            </button>
           );
         })}
       </nav>
     );
   }
 
-  if (variant === 'sidebar') {
-    return (
-      <nav className="flex flex-col w-full p-2 space-y-0.5">
-        {visibleItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeModule === item.id;
-          return (
-            <Button
-              key={item.id}
-              variant={isActive ? 'secondary' : 'ghost'}
-              className={cn(
-                'w-full justify-start gap-2 h-8 text-xs px-2',
-                isActive && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
-              )}
-              onClick={() => onModuleChange(item.id)}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{item.label}</span>
-            </Button>
-          );
-        })}
-      </nav>
-    );
-  }
-
-  return null;
+  // Sidebar variant
+  return (
+    <nav className="flex flex-col gap-1 p-2">
+      {filteredItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = activeModule === item.id;
+        
+        return (
+          <button
+            key={item.id}
+            onClick={() => onModuleChange(item.id)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
 }

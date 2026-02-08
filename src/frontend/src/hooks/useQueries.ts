@@ -48,15 +48,14 @@ export function useSaveCallerUserProfile() {
 // User Role Queries
 export function useGetCallerUserRole() {
   const { actor, isFetching: actorFetching } = useActor();
-  const { identity } = useInternetIdentity();
 
   return useQuery<UserRole>({
-    queryKey: ['currentUserRole', identity?.getPrincipal().toString()],
+    queryKey: ['currentUserRole'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
       return actor.getCallerUserRole();
     },
-    enabled: !!actor && !actorFetching && !!identity,
+    enabled: !!actor && !actorFetching,
     retry: false,
   });
 }
@@ -543,7 +542,7 @@ export function useDeletePurchase() {
   });
 }
 
-// Company Branding
+// Company Branding Queries
 export function useGetCompanyBranding() {
   const { actor, isFetching } = useActor();
 
@@ -571,23 +570,12 @@ export function useSetCompanyBranding() {
       toast.success('Company branding updated successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update branding: ${error.message}`);
+      toast.error(`Failed to update company branding: ${error.message}`);
     },
   });
 }
 
 // Finance Queries
-export function useGetReportTotals() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getReportTotals(data.startTime, data.endTime);
-    },
-  });
-}
-
 export function useGenerateProfitAndLossReport() {
   const { actor } = useActor();
 
@@ -595,6 +583,17 @@ export function useGenerateProfitAndLossReport() {
     mutationFn: async (data: { startTime: Time; endTime: Time }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.generateProfitAndLossReport(data.startTime, data.endTime);
+    },
+  });
+}
+
+export function useGetReportTotals() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getReportTotals(data.startTime, data.endTime);
     },
   });
 }
