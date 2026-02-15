@@ -4,56 +4,56 @@
 
 @layer base {
   :root {
-    --background: oklch(98% 0.01 240);
-    --foreground: oklch(20% 0.02 240);
+    --background: oklch(100% 0 0);
+    --foreground: oklch(15% 0 0);
     --card: oklch(100% 0 0);
-    --card-foreground: oklch(20% 0.02 240);
+    --card-foreground: oklch(15% 0 0);
     --popover: oklch(100% 0 0);
-    --popover-foreground: oklch(20% 0.02 240);
-    --primary: oklch(55% 0.18 260);
-    --primary-foreground: oklch(98% 0.01 260);
-    --secondary: oklch(92% 0.02 240);
-    --secondary-foreground: oklch(25% 0.02 240);
-    --muted: oklch(94% 0.01 240);
-    --muted-foreground: oklch(50% 0.02 240);
-    --accent: oklch(90% 0.03 280);
-    --accent-foreground: oklch(25% 0.02 280);
-    --destructive: oklch(55% 0.20 25);
-    --destructive-foreground: oklch(98% 0.01 25);
-    --border: oklch(88% 0.01 240);
-    --input: oklch(88% 0.01 240);
-    --ring: oklch(55% 0.18 260);
-    --radius: 0.5rem;
+    --popover-foreground: oklch(15% 0 0);
+    --primary: oklch(45% 0.18 264);
+    --primary-foreground: oklch(98% 0 0);
+    --secondary: oklch(95% 0.01 264);
+    --secondary-foreground: oklch(15% 0 0);
+    --muted: oklch(95% 0.01 264);
+    --muted-foreground: oklch(45% 0.01 264);
+    --accent: oklch(95% 0.01 264);
+    --accent-foreground: oklch(15% 0 0);
+    --destructive: oklch(55% 0.22 25);
+    --destructive-foreground: oklch(98% 0 0);
     --success: oklch(60% 0.15 145);
-    --success-foreground: oklch(98% 0.01 145);
-    --warning: oklch(70% 0.15 60);
-    --warning-foreground: oklch(20% 0.02 60);
+    --success-foreground: oklch(98% 0 0);
+    --warning: oklch(75% 0.15 85);
+    --warning-foreground: oklch(15% 0 0);
+    --border: oklch(90% 0.01 264);
+    --input: oklch(90% 0.01 264);
+    --ring: oklch(45% 0.18 264);
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: oklch(18% 0.02 240);
-    --foreground: oklch(95% 0.01 240);
-    --card: oklch(20% 0.02 240);
-    --card-foreground: oklch(95% 0.01 240);
-    --popover: oklch(20% 0.02 240);
-    --popover-foreground: oklch(95% 0.01 240);
-    --primary: oklch(65% 0.20 270);
-    --primary-foreground: oklch(15% 0.02 270);
-    --secondary: oklch(28% 0.02 240);
-    --secondary-foreground: oklch(95% 0.01 240);
-    --muted: oklch(25% 0.02 240);
-    --muted-foreground: oklch(65% 0.02 240);
-    --accent: oklch(30% 0.03 280);
-    --accent-foreground: oklch(95% 0.01 280);
+    --background: oklch(15% 0.01 264);
+    --foreground: oklch(98% 0 0);
+    --card: oklch(18% 0.01 264);
+    --card-foreground: oklch(98% 0 0);
+    --popover: oklch(15% 0.01 264);
+    --popover-foreground: oklch(98% 0 0);
+    --primary: oklch(65% 0.18 264);
+    --primary-foreground: oklch(15% 0 0);
+    --secondary: oklch(25% 0.01 264);
+    --secondary-foreground: oklch(98% 0 0);
+    --muted: oklch(25% 0.01 264);
+    --muted-foreground: oklch(65% 0.01 264);
+    --accent: oklch(25% 0.01 264);
+    --accent-foreground: oklch(98% 0 0);
     --destructive: oklch(55% 0.22 25);
-    --destructive-foreground: oklch(98% 0.01 25);
-    --border: oklch(30% 0.02 240);
-    --input: oklch(30% 0.02 240);
-    --ring: oklch(65% 0.20 270);
+    --destructive-foreground: oklch(98% 0 0);
     --success: oklch(60% 0.15 145);
-    --success-foreground: oklch(98% 0.01 145);
-    --warning: oklch(70% 0.15 60);
-    --warning-foreground: oklch(20% 0.02 60);
+    --success-foreground: oklch(98% 0 0);
+    --warning: oklch(75% 0.15 85);
+    --warning-foreground: oklch(15% 0 0);
+    --border: oklch(25% 0.01 264);
+    --input: oklch(25% 0.01 264);
+    --ring: oklch(65% 0.18 264);
   }
 }
 
@@ -63,61 +63,59 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Enhanced Dialog/Modal Overlay and Content Styling */
-@layer components {
-  /* Dialog Overlay - Stronger, more opaque dimming */
-  [data-radix-dialog-overlay],
-  [data-radix-alert-dialog-overlay] {
-    background-color: oklch(0% 0 0 / 0.75) !important;
-    backdrop-filter: blur(4px);
-    z-index: 50;
-  }
+/* Overlay and Dialog z-index stacking - HARDENED */
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay],
+[data-radix-sheet-overlay],
+[data-radix-popover-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  background-color: oklch(0% 0 0 / 0.92) !important;
+  backdrop-filter: blur(6px) !important;
+}
 
-  .dark [data-radix-dialog-overlay],
-  .dark [data-radix-alert-dialog-overlay] {
-    background-color: oklch(0% 0 0 / 0.85) !important;
-  }
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content],
+[data-radix-sheet-content],
+[data-radix-popover-content] {
+  position: fixed !important;
+  z-index: 101 !important;
+  background-color: var(--card) !important;
+}
 
-  /* Dialog Content - Solid, opaque surface with clear elevation */
-  [data-radix-dialog-content],
-  [data-radix-alert-dialog-content] {
-    background-color: hsl(var(--card)) !important;
-    border: 2px solid hsl(var(--border)) !important;
-    box-shadow: 0 20px 25px -5px oklch(0% 0 0 / 0.3), 
-                0 10px 10px -5px oklch(0% 0 0 / 0.2) !important;
-    z-index: 51;
-  }
+/* Focused overlay layer (full-screen flows) */
+.focused-overlay-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background-color: oklch(0% 0 0 / 0.95);
+  backdrop-filter: blur(8px);
+}
 
-  /* Sheet (Drawer) Overlay - Consistent dimming */
-  [data-radix-sheet-overlay] {
-    background-color: oklch(0% 0 0 / 0.75) !important;
-    backdrop-filter: blur(4px);
-    z-index: 50;
-  }
+/* Thermal receipt preview styles */
+.thermal-receipt-preview {
+  font-family: 'Courier New', monospace;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
 
-  .dark [data-radix-sheet-overlay] {
-    background-color: oklch(0% 0 0 / 0.85) !important;
+/* Print styles for thermal receipts */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
   }
-
-  /* Sheet Content - Solid panel with clear separation */
-  [data-radix-sheet-content] {
-    background-color: hsl(var(--card)) !important;
-    border: 2px solid hsl(var(--border)) !important;
-    box-shadow: -10px 0 25px -5px oklch(0% 0 0 / 0.3) !important;
-    z-index: 51;
+  
+  .thermal-receipt-preview {
+    display: block !important;
   }
-
-  /* Ensure header stays below overlays but above content */
-  header {
-    z-index: 40 !important;
-  }
-
-  /* Ensure navigation stays below overlays */
-  nav {
-    z-index: 40 !important;
+  
+  /* Hide everything except thermal preview during print */
+  body > *:not(.thermal-receipt-preview) {
+    display: none !important;
   }
 }

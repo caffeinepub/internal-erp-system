@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-make-the-app-accessible-without-requiring-internet-identity-login-by-updating-the-root-app-flow-to-always-render-the-main-dashboard-appshell-modules-and-never-block-on-the-loginpage",
-      "featureTitle": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
+      "featureId": "feature-fix-the-estimate-product-selection-add-flow-so-selecting-a-product-reliably-populates-the-draft-line-item-fields-productid-description-and-rate-and-the-user-can-add-the-line-item-without-manual-re-entry-or-losing-the-selected-product",
+      "featureTitle": "Fix the estimate product selection/add flow so selecting a product reliably populates the draft line item fields (productId, description, and rate) and the user can add the line item without manual re-entry or losing the selected product.",
       "files": [
-        "frontend/src/App.tsx"
+        "frontend/src/components/ProductAutocomplete.tsx",
+        "frontend/src/pages/EstimateEditorPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,39 +19,16 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-18"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-disable-first-time-profile-setup-gating-for-open-access-so-anonymous-users-are-not-prompted-for-profilesetupmodal-when-using-the-app-without-login",
-      "featureTitle": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
+      "featureId": "feature-ensure-the-billing-estimate-editor-supports-full-erp-saving-create-and-edit-estimates-that-persist-to-the-backend-and-appear-in-the-billing-list-with-correct-totals-and-status",
+      "featureTitle": "Ensure the billing estimate editor supports full ERP saving: create and edit estimates that persist to the backend and appear in the Billing list with correct totals and status.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/ProfileSetupModal.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "user-approval@3.0.0",
-        "blob-storage@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-19"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-allow-role-and-admin-gated-ui-e-g-backup-module-to-function-in-open-mode-by-adjusting-frontend-role-fetching-so-it-can-resolve-a-role-even-when-the-current-identity-is-absent-anonymous-actor",
-      "featureTitle": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
-      "files": [
-        "frontend/src/components/PrimaryNavigation.tsx",
         "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/Dashboard.tsx"
+        "frontend/src/pages/EstimateEditorPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,7 +41,94 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-20"
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-ensure-bill-to-customer-selection-in-the-estimate-editor-using-the-existing-bill-to-contacts-list-and-display-the-customer-s-previous-outstanding-pending-amount-with-a-clear-red-flag-visual-when-pending-0",
+      "featureTitle": "Add/ensure Bill To customer selection in the estimate editor using the existing Bill To contacts list, and display the customer’s previous outstanding/pending amount with a clear red-flag visual when pending > 0.",
+      "files": [
+        "frontend/src/pages/EstimateEditorPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-inventory-stock-is-enforced-and-updated-based-on-product-linked-line-items-validate-available-stock-when-adding-saving-line-items-decrement-stock-on-estimate-creation-and-adjust-stock-correctly-when-editing-an-estimate-restore-original-quantities-then-apply-updated-quantities",
+      "featureTitle": "Ensure inventory stock is enforced and updated based on product-linked line items: validate available stock when adding/saving line items, decrement stock on estimate creation, and adjust stock correctly when editing an estimate (restore original quantities then apply updated quantities).",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/EstimateEditorPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-auto-fill-the-estimate-line-item-rate-price-from-the-most-recent-purchase-price-recorded-in-the-purchase-module-for-the-selected-product-if-no-purchase-history-exists-for-that-product-fall-back-to-the-product-s-default-price",
+      "featureTitle": "Auto-fill the estimate line item rate/price from the most recent purchase price recorded in the Purchase module for the selected product; if no purchase history exists for that product, fall back to the product’s default price.",
+      "files": [
+        "frontend/src/pages/EstimateEditorPage.tsx",
+        "frontend/src/utils/purchasePrice.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-record-payments-against-estimates-and-ensure-pending-amount-is-automatically-recalculated-and-displayed-consistently-across-the-billing-list-and-customer-pending-calculations",
+      "featureTitle": "Record payments against estimates and ensure pending amount is automatically recalculated and displayed consistently across the Billing list and customer pending calculations.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/EstimateEditorPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "user-approval@3.0.0",
+        "blob-storage@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

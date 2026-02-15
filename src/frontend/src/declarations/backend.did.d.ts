@@ -53,6 +53,7 @@ export interface Estimate {
 export interface EstimateItem {
   'rate' : number,
   'description' : string,
+  'productId' : [] | [bigint],
   'quantity' : number,
   'amount' : number,
 }
@@ -179,6 +180,7 @@ export interface _SERVICE {
     bigint
   >,
   'deleteContact' : ActorMethod<[bigint], undefined>,
+  'deleteEstimate' : ActorMethod<[bigint], undefined>,
   'deleteProduct' : ActorMethod<[bigint], undefined>,
   'deletePurchase' : ActorMethod<[bigint], undefined>,
   'generateProfitAndLossReport' : ActorMethod<[Time, Time], ProfitAndLoss>,

@@ -1,54 +1,52 @@
-import { ReactNode } from 'react';
-import Header from './Header';
-import Footer from './Footer';
-import PrimaryNavigation from './PrimaryNavigation';
-import MobileNavDrawer from './MobileNavDrawer';
 import { useState } from 'react';
+import { useFocusedOverlay } from '../context/FocusedOverlayContext';
+import Header from './Header';
+import MobileNavDrawer from './MobileNavDrawer';
 import type { ModuleView } from '../pages/Dashboard';
 
 interface AppShellProps {
-  children: ReactNode;
+  children: React.ReactNode;
   activeModule: ModuleView;
   onModuleChange: (module: ModuleView) => void;
   isAdmin?: boolean;
 }
 
-export default function AppShell({ children, activeModule, onModuleChange, isAdmin = false }: AppShellProps) {
+export default function AppShell({ 
+  children, 
+  activeModule, 
+  onModuleChange,
+  isAdmin = false 
+}: AppShellProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const { isActive: isFocusedOverlayActive } = useFocusedOverlay();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header onMobileMenuClick={() => setIsMobileNavOpen(true)} />
+    <div className="min-h-screen bg-background">
+      {!isFocusedOverlayActive && (
+        <Header
+          activeModule={activeModule}
+          onModuleChange={onModuleChange}
+          onMobileMenuToggle={() => setIsMobileNavOpen(true)}
+          isAdmin={isAdmin}
+        />
+      )}
       
-      {/* Desktop Top Navigation */}
-      <nav className="hidden lg:block border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 sticky top-[52px] z-40 shadow-sm">
-        <div className="container mx-auto px-3 max-w-7xl">
-          <PrimaryNavigation
-            variant="top"
-            activeModule={activeModule}
-            onModuleChange={onModuleChange}
-            isAdmin={isAdmin}
-          />
-        </div>
-      </nav>
-
-      {/* Mobile Navigation Drawer */}
-      <MobileNavDrawer
-        isOpen={isMobileNavOpen}
-        onClose={() => setIsMobileNavOpen(false)}
-        activeModule={activeModule}
-        onModuleChange={(module) => {
-          onModuleChange(module);
-          setIsMobileNavOpen(false);
-        }}
-        isAdmin={isAdmin}
-      />
-
-      <main className="flex-1 container mx-auto px-3 py-4 max-w-7xl">
+      <main className="relative">
         {children}
       </main>
 
-      <Footer />
+      {!isFocusedOverlayActive && (
+        <MobileNavDrawer
+          isOpen={isMobileNavOpen}
+          onClose={() => setIsMobileNavOpen(false)}
+          activeModule={activeModule}
+          onModuleChange={(module) => {
+            onModuleChange(module);
+            setIsMobileNavOpen(false);
+          }}
+          isAdmin={isAdmin}
+        />
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { ThemeProvider } from 'next-themes';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import Dashboard from './pages/Dashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { FocusedOverlayProvider } from './context/FocusedOverlayContext';
 
 export default function App() {
   const { identity, isInitializing } = useInternetIdentity();
@@ -32,10 +33,12 @@ export default function App() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <Dashboard />
-      {showProfileSetup && <ProfileSetupModal />}
-      <PWAInstallPrompt />
-      <Toaster />
+      <FocusedOverlayProvider>
+        <Dashboard />
+        {showProfileSetup && <ProfileSetupModal />}
+        <PWAInstallPrompt />
+        <Toaster />
+      </FocusedOverlayProvider>
     </ThemeProvider>
   );
 }

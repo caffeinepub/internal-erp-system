@@ -1,21 +1,32 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T16:24:22.265Z",
-  "summary": "Frontend changes largely remove login gating by always rendering the Dashboard and suppressing profile setup for anonymous users. Backend introduces an `openAccess` flag and toggle API, but the shown logic does not make anonymous callers automatically approved/admin and does not provide clear evidence that all authorization checks are bypassed across domain methods.",
+  "generatedAt": "2026-02-15T18:20:41.285Z",
+  "summary": "The diff implements parts of the estimate editor flow (product autocomplete hardening, previous-pending-balance calculation scaffolding, purchase-price helper) and adds/mentions optimistic React Query mutations, but several requested ERP billing behaviors (inventory enforcement/stock adjustment, payment UI/list styling, conditional migration) are not evidenced in the provided diff summary. The diff also includes multiple unrelated UI/infra changes (PWA assets, version labels, access/approval/openAccess backend controls) that were not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-21",
-      "requirement": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
-      "reason": "The diff shows an `openAccess` flag and some conditional authorization around approval endpoints, but (a) it does not demonstrate that all methods guarded by `AccessControl.hasPermission(...)` are bypassed when `openAccess` is enabled, and (b) the only shown `openAccess` behavior still relies on `UserApproval.isApproved(...)` rather than being universally permissive.",
+      "id": "REQ-4",
+      "requirement": "Enforce and update inventory stock based on product-linked line items: validate available stock when adding/saving, decrement stock on estimate creation, and correctly adjust stock on estimate edit (restore original quantities then apply updated quantities).",
+      "reason": "The diff summary does not show any backend logic for stock validation/decrement/restore tied to estimate create/update, nor frontend validation blocking add/save when quantity exceeds stock. Only types (Product.stockQuantity, EstimateItem.productId) are visible; no inventory adjustment algorithms or validation messages are evidenced.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo",
+        "frontend/src/pages/EstimateEditorPage.tsx"
       ]
     },
     {
-      "id": "REQ-22",
-      "requirement": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
-      "reason": "The shown `isCallerApproved` implementation is not permissive in open access mode (it returns `UserApproval.isApproved(...)` when `openAccess` is true). No changes are shown for `getCallerUserRole` or `isCallerAdmin` to return admin-equivalent values in open mode.",
+      "id": "REQ-6",
+      "requirement": "Record payments against estimates and ensure pending amount is recalculated and displayed consistently (including red emphasis for pending > 0 in the Billing list) and used for customer previous pending calculations.",
+      "reason": "While the frontend summary mentions “estimate create/edit/payment mutations” in hooks, the diff summary provides no concrete UI changes for recording payments, no Billing list changes showing Paid/Pending columns, and no evidence of red/destructive styling for pending > 0 in the list. The EstimateEditor page shows previousPendingBalance calculation, but payment recording/display requirements are not evidenced.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend-file-summaries.txt",
+        "frontend/src/pages/EstimateEditorPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "requirement": "If backend estimate/billing types/APIs change, add a conditional migration in backend/migration.mo to preserve existing persisted estimates across upgrades.",
+      "reason": "No backend/migration.mo file is added/modified in the diff summary, so there is no evidenced conditional migration to preserve existing persisted state if schema/types changed.",
       "evidence": [
         "backend/main.mo"
       ]
@@ -23,45 +34,38 @@
   ],
   "hallucinated_features": [
     {
-      "description": "PWA-related additions/changes (manifest, service worker, PWA meta tags, app icons).",
-      "reason": "The BuildRequest is focused on removing login/auth gating; PWA/offline/install changes are unrelated and explicitly outside necessary changes for open access.",
+      "description": "Backend open-access toggle and user approval/admin approval management APIs (toggleOpenAccess, requestApproval, setApproval, listApprovals).",
+      "reason": "The BuildRequest is focused on billing/estimates, inventory, purchases, payments, and migration constraints; it does not request adding an open-access mode or approval workflow APIs.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/index.html, frontend/public/manifest.json, frontend/public/sw.js)"
+        "backend/main.mo"
       ]
     },
     {
-      "description": "UI density/styling changes and 'Version 36' labels across multiple components (LoginPage, Header, Footer, AccessDeniedScreen, module pages).",
-      "reason": "The request states to avoid changing UI styling/theme beyond what is necessary to remove login gating; these appear to be broad styling/content changes not required for open access.",
+      "description": "PWA/branding infrastructure changes (manifest, icons/meta, service worker), plus “Version 36” UI labels and widespread UI compaction/styling tweaks across app pages/modules.",
+      "reason": "These changes are not part of the requested billing/estimate/inventory/purchase/payment functionality and are not mentioned in any requirement or acceptance criteria.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/pages/LoginPage.tsx, frontend/src/components/Header.tsx, frontend/src/components/Footer.tsx, frontend/src/components/AccessDeniedScreen.tsx, frontend/src/components/DashboardOverview.tsx, frontend/src/components/InventoryModule.tsx, etc.)"
+        "frontend-file-summaries.txt",
+        "frontend/index.html",
+        "frontend/public/manifest.json"
       ]
     },
     {
-      "description": "New finance module behavior: product search inputs and real-time filtering in report tabs.",
-      "reason": "The BuildRequest non-goals disallow adding new business features unrelated to open access; this is a new reporting/filtering feature.",
+      "description": "Global overlay z-index/print styling overhaul and thermal receipt preview styles.",
+      "reason": "Real-time/printing/PWA styling changes are not requested in the billing rebuild requirements; only estimate editor/list behavior is specified.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/components/FinanceModule.tsx)"
-      ]
-    },
-    {
-      "description": "Global CSS overhaul (OKLCH color system, overlay/dialog styling and z-index changes).",
-      "reason": "Not required to remove login gating and appears to be a broad theme/styling change beyond the stated constraint.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css)"
+        "frontend-file-summaries.txt",
+        "frontend/src/index.css"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/AppShell.tsx",
-    "frontend/src/components/MobileNavDrawer.tsx",
-    "frontend/src/components/PrimaryNavigation.tsx",
-    "frontend/src/components/ProfileSetupModal.tsx",
+    "frontend/src/components/ProductAutocomplete.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/Dashboard.tsx",
+    "frontend/src/pages/EstimateEditorPage.tsx",
+    "frontend/src/utils/purchasePrice.ts",
     "project_state.json"
   ]
 }

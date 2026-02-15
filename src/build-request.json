@@ -1,119 +1,164 @@
 {
   "kind": "build_request",
-  "title": "Remove login/authentication and make the ERP app openly accessible",
+  "title": "Rebuild ERP Billing module: estimates with product-linked line items, pending balance, inventory deduction, and purchase-price autofill",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-18",
-      "text": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
+      "id": "REQ-1",
+      "text": "Fix the estimate product selection/add flow so selecting a product reliably populates the draft line item fields (productId, description, and rate) and the user can add the line item without manual re-entry or losing the selected product.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "recent-messages"
         ],
         "quotes": [
-          "Remove login credentials and make it open"
+          "Fix Billing estimate product dropdown regression (selection does not add/populate line item)",
+          "Estimates, products, line items with qty price and amount"
         ]
       },
       "acceptanceCriteria": [
-        "Opening the app in a fresh browser session shows the Dashboard (not the LoginPage) without any login action.",
-        "No user-facing message implies that login is required to use core modules (Products, Inventory, Contacts, Purchasing, Billing, Finance)."
+        "In the Estimate Editor, selecting a product updates the current line item description and rate immediately.",
+        "Clicking “Add Item” adds the selected product as a line item with the expected quantity, rate, and computed amount.",
+        "After adding an item, the draft line-item inputs reset cleanly and do not retain a stale product selection.",
+        "No regression where product selection appears chosen but productId is empty/cleared unexpectedly."
       ]
     },
     {
-      "id": "REQ-19",
-      "text": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
+      "id": "REQ-2",
+      "text": "Ensure the billing estimate editor supports full ERP saving: create and edit estimates that persist to the backend and appear in the Billing list with correct totals and status.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "A) Full ERP saving (all estimates/invoices saved, listed, editable, connected to inventory and purchase module)",
+          "Full rebuild please"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Creating an estimate persists it via backend APIs and it appears in the BillingModule estimates list without requiring a page refresh.",
+        "Editing an existing estimate updates the persisted record and the BillingModule list reflects the new values.",
+        "Line items support quantity, rate/price, and amount; totals are computed as the sum of line item amounts.",
+        "No tax calculation is added."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add/ensure Bill To customer selection in the estimate editor using the existing Bill To contacts list, and display the customer’s previous outstanding/pending amount with a clear red-flag visual when pending > 0.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "recent-messages"
         ],
         "quotes": [
-          "Remove login credentials and make it open"
+          "Billing module connection, Bill to with contact bill to option",
+          "previous pending amount with red flag"
         ]
       },
       "acceptanceCriteria": [
-        "When not logged in, the ProfileSetupModal never appears.",
-        "The app remains usable without creating/saving a user profile."
+        "The estimate editor provides a customer selector populated from Bill To contacts.",
+        "Selecting a customer fills customer name and address/contact info fields from the contact record.",
+        "The editor shows “Previous Pending Balance” for the selected customer, calculated from previously saved estimates’ pending amounts (excluding the currently edited estimate).",
+        "When previous pending balance > 0, it is visually highlighted as an alert/red-flag indicator."
       ]
     },
     {
-      "id": "REQ-20",
-      "text": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+      "id": "REQ-4",
+      "text": "Ensure inventory stock is enforced and updated based on product-linked line items: validate available stock when adding/saving line items, decrement stock on estimate creation, and adjust stock correctly when editing an estimate (restore original quantities then apply updated quantities).",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "qty with inventory stock",
+          "Ensure inventory quantities automatically decrease when a bill/estimate is created and adjust correctly when an existing estimate is edited."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When a product-linked line item quantity exceeds available stock, the UI blocks adding/saving and shows a clear validation message.",
+        "Saving a new estimate decreases the corresponding product stock quantities in the backend and the updated stock is visible in Products/Inventory views after query refresh.",
+        "Editing an estimate results in correct net stock changes (no double-decrement, no drift).",
+        "Stock updates are based on productId linkage, not free-text description matching."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Auto-fill the estimate line item rate/price from the most recent purchase price recorded in the Purchase module for the selected product; if no purchase history exists for that product, fall back to the product’s default price.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "recent-messages"
         ],
         "quotes": [
-          "Remove login credentials and make it open"
+          "price with recent purchase price in purchase module"
         ]
       },
       "acceptanceCriteria": [
-        "The app can fetch and display a user role even when not logged in (no Internet Identity identity present).",
-        "Admin-only sections that depend on role (e.g., Backup module) are accessible in open mode when the backend reports an admin role."
+        "When selecting a product in the estimate editor, the rate field is set to the latest matching purchase price from Purchase history for that product.",
+        "If no purchases exist for the selected product, the rate field falls back to the product’s stored price.",
+        "The user can still manually override the rate after auto-fill."
       ]
     },
     {
-      "id": "REQ-21",
-      "text": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
+      "id": "REQ-6",
+      "text": "Record payments against estimates and ensure pending amount is automatically recalculated and displayed consistently across the Billing list and customer pending calculations.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "automatically calculation if any amount paid.",
+          "previous pending with previous estimates (invoices) amount and automatically calculation if any amount paid."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Recording a payment updates the estimate’s paid amount, pending amount, and paid/unpaid status in persisted storage.",
+        "Billing list shows Paid and Pending columns that match the recorded payment and total amount.",
+        "Customer “Previous Pending Balance” uses the latest persisted pending amounts (post-payment) for calculations.",
+        "Pending amounts > 0 are visually emphasized (red/destructive styling) in the Billing list."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "If backend estimate/billing types/APIs need to change to fully support product-linked line items and inventory adjustments, implement the minimal backend changes and add a conditional migration in backend/migration.mo to preserve existing persisted estimates across upgrades.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "project_state.json"
         ],
         "quotes": [
-          "Remove login credentials and make it open"
+          "Update the backend estimate/billing data model and APIs only as needed... If backend types change in a way that affects persisted state across upgrades, add a conditional migration (backend/migration.mo) to preserve existing data."
         ]
       },
       "acceptanceCriteria": [
-        "All backend methods that currently guard with AccessControl.hasPermission(...) succeed for anonymous callers when open access is enabled (no Runtime.trap('Unauthorized...') for anonymous).",
-        "Anonymous callers can perform CRUD actions across modules (Products, Inventory, Contacts, Purchasing, Billing/Estimates) successfully.",
-        "Anonymous callers can export and import backups successfully."
-      ]
-    },
-    {
-      "id": "REQ-22",
-      "text": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Remove login credentials and make it open"
-        ]
-      },
-      "acceptanceCriteria": [
-        "isCallerApproved returns true for anonymous callers in open mode.",
-        "getCallerUserRole returns 'admin' (or the app’s highest role) for anonymous callers in open mode.",
-        "isCallerAdmin returns true for anonymous callers in open mode.",
-        "The Backup module can be opened in the UI without logging in and without showing an access denied screen."
+        "Any backend schema/type changes are backward-compatible via a conditional migration.",
+        "Existing estimates remain readable after upgrade and continue to display in the Billing list and editor.",
+        "No data loss for estimates, products, contacts, purchases, inventory, or company branding after upgrade."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or any other paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo (add backend/migration.mo only if a state migration is required).",
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
+    "Only create/modify backend/migration.mo when an upgrade would otherwise break existing persisted state (conditional migration policy).",
+    "Do not edit files under frontend/src/components/ui (shadcn) or any other immutable paths listed in SYSTEM_CONTEXT; compose them instead.",
     "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing third-party authentication providers or alternative auth mechanisms (only Internet Identity exists, but this change is to make login unnecessary).",
-    "Adding new business features unrelated to open access (e.g., new reports, new inventory automation rules).",
-    "Changing UI styling/theme beyond what is necessary to remove login gating."
+    "Implementing third-party authentication providers (only Internet Identity is supported).",
+    "Adding taxes, discounts, or unit fields to billing line items (explicitly out of scope).",
+    "Adding real-time features (WebSockets/chat/notifications)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
   },
   "userProfileUpdate": {
-    "goalsToAdd": [
-      "Make the ERP app openly accessible without login credentials"
-    ],
+    "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [
-      "Remove login gates and authorization traps for anonymous users"
-    ],
+    "preferencesToAdd": [],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

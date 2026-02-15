@@ -1,298 +1,201 @@
-// ESC/POS command constants
-const ESC = 0x1b;
-const GS = 0x1d;
+import type { EstimatePrintData } from '../backend';
 
-// Initialize printer - comprehensive reset
-const INIT = [ESC, 0x40]; // Initialize printer
-const RESET_PRINT_MODE = [ESC, 0x21, 0x00]; // Reset print mode
-const PRINT_DIRECTION_LEFT_TO_RIGHT = [ESC, 0x54, 0x00]; // Print direction: left to right, top to bottom
-
-// Text formatting
-const BOLD_ON = [ESC, 0x45, 0x01];
-const BOLD_OFF = [ESC, 0x45, 0x00];
-const ALIGN_LEFT = [ESC, 0x61, 0x00];
-const ALIGN_CENTER = [ESC, 0x61, 0x01];
-const ALIGN_RIGHT = [ESC, 0x61, 0x02];
-
-// Size
-const SIZE_NORMAL = [GS, 0x21, 0x00];
-const SIZE_DOUBLE = [GS, 0x21, 0x11]; // Double height and width
-const SIZE_DOUBLE_HEIGHT = [GS, 0x21, 0x01]; // Double height only
-
-// Line feed and spacing
-const LINE_FEED = [0x0a];
-const SET_LINE_SPACING_DEFAULT = [ESC, 0x32]; // Default line spacing
-const CUT_PAPER = [GS, 0x56, 0x00]; // Full cut
-
-export interface ThermalEncoderSettings {
+interface EncoderSettings {
   paperWidth: '58mm' | '80mm';
   lineSpacing: number;
   itemSpacing: number;
-  // Computed values
-  lineWidth?: number;
+  lineWidth: number;
 }
 
-/**
- * Encodes thermal receipt content into ESC/POS commands
- * This is a best-effort implementation for common thermal printers
- */
+interface ThermalReceiptData {
+  companyName: string;
+  companyAddress: string;
+  companyPhone: string;
+  estimateDate: string;
+  estimateNumber: string;
+  customerName: string;
+  customerAddress: string;
+  previousPending?: number;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    rate: number;
+    amount: number;
+  }>;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+}
+
+// ESC/POS Commands
+const ESC = 0x1b;
+const GS = 0x1d;
+
+function initPrinter(): number[] {
+  return [
+    ESC, 0x40, // Initialize printer (reset)
+    ESC, 0x54, 0x00, // Set print direction (left to right)
+    ESC, 0x21, 0x00, // Reset print mode
+  ];
+}
+
+function setAlignment(align: 'left' | 'center' | 'right'): number[] {
+  const code = align === 'left' ? 0 : align === 'center' ? 1 : 2;
+  return [ESC, 0x61, code];
+}
+
+function setBold(enabled: boolean): number[] {
+  return [ESC, 0x45, enabled ? 1 : 0];
+}
+
+function setDoubleWidth(enabled: boolean): number[] {
+  return [ESC, 0x21, enabled ? 0x20 : 0x00];
+}
+
+function feedLines(lines: number): number[] {
+  return [ESC, 0x64, lines];
+}
+
+function cutPaper(): number[] {
+  return [GS, 0x56, 0x00]; // Full cut
+}
+
+function printLine(text: string, maxWidth: number): number[] {
+  const truncated = text.length > maxWidth ? text.substring(0, maxWidth) : text;
+  const bytes = new TextEncoder().encode(truncated + '\n');
+  return Array.from(bytes);
+}
+
+function printSeparator(char: string, width: number): number[] {
+  return printLine(char.repeat(width), width);
+}
+
+function printTwoColumn(left: string, right: string, width: number): number[] {
+  const rightLen = right.length;
+  const leftLen = Math.max(0, width - rightLen - 1);
+  const leftTrunc = left.length > leftLen ? left.substring(0, leftLen) : left.padEnd(leftLen);
+  return printLine(leftTrunc + ' ' + right, width);
+}
+
 export function encodeThermalReceipt(
-  content: {
-    companyName: string;
-    companyAddress: string;
-    companyPhone: string;
-    estimateDate: string;
-    customerName: string;
-    customerAddress: string;
-    previousPending?: number;
-    lineItems: Array<{
-      description: string;
-      quantity: number;
-      rate: number;
-      amount: number;
-    }>;
-    totalAmount: number;
-    paidAmount: number;
-    pendingAmount: number;
-  },
-  encoderSettings?: ThermalEncoderSettings
+  data: ThermalReceiptData,
+  settings: EncoderSettings
 ): Uint8Array {
-  const encoder = new TextEncoder();
-  const commands: number[] = [];
+  const lineWidth = settings.lineWidth;
 
-  // Use default settings if not provided
-  const settings: ThermalEncoderSettings = encoderSettings || {
-    paperWidth: '80mm',
-    lineSpacing: 1.3,
-    itemSpacing: 6,
-  };
+  let bytes: number[] = [];
 
-  // Calculate line width based on paper width (approximate characters per line)
-  // 58mm ≈ 32 chars at 12cpi, 80mm ≈ 42 chars at 12cpi
-  const lineWidth = settings.lineWidth || (settings.paperWidth === '58mm' ? 32 : 42);
-  settings.lineWidth = lineWidth;
+  // Initialize printer
+  bytes.push(...initPrinter());
 
-  // Helper to add text
-  const addText = (text: string) => {
-    commands.push(...Array.from(encoder.encode(text)));
-  };
+  // Header: Shop Name (centered, bold, double-width)
+  bytes.push(...setAlignment('center'));
+  bytes.push(...setBold(true));
+  bytes.push(...setDoubleWidth(true));
+  bytes.push(...printLine(data.companyName, Math.floor(lineWidth / 2)));
+  bytes.push(...setDoubleWidth(false));
+  bytes.push(...setBold(false));
 
-  // Helper to add command
-  const addCommand = (cmd: number[]) => {
-    commands.push(...cmd);
-  };
+  // Address (centered)
+  bytes.push(...setAlignment('center'));
+  bytes.push(...printLine(data.companyAddress, lineWidth));
 
-  // Helper to add line
-  const addLine = (text: string) => {
-    addText(text);
-    addCommand(LINE_FEED);
-  };
+  // Phone (centered, bold)
+  bytes.push(...setBold(true));
+  bytes.push(...printLine(`Ph.No.: ${data.companyPhone}`, lineWidth));
+  bytes.push(...setBold(false));
 
-  // Helper to add separator
-  const addSeparator = () => {
-    addLine('-'.repeat(lineWidth));
-  };
+  // Separator
+  bytes.push(...printSeparator('-', lineWidth));
 
-  // Helper to truncate text to fit line width
-  const truncate = (text: string, maxLength: number): string => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength - 3) + '...';
-  };
-
-  // Helper to add extra spacing based on itemSpacing setting
-  const addItemSpacing = () => {
-    // Map itemSpacing (2-12px) to extra line feeds (0-2)
-    const extraLines = Math.floor(settings.itemSpacing / 6);
-    for (let i = 0; i < extraLines; i++) {
-      addCommand(LINE_FEED);
-    }
-  };
-
-  // === PRINTER INITIALIZATION ===
-  // Critical: Reset printer to known state and set normal print direction
-  addCommand(INIT); // Initialize/reset printer
-  addCommand(RESET_PRINT_MODE); // Reset all print modes
-  addCommand(PRINT_DIRECTION_LEFT_TO_RIGHT); // Ensure left-to-right, top-to-bottom printing
-  addCommand(SET_LINE_SPACING_DEFAULT); // Set default line spacing
-  addCommand(SIZE_NORMAL); // Ensure normal size
-  addCommand(BOLD_OFF); // Ensure bold is off
-  addCommand(ALIGN_LEFT); // Start with left alignment
-
-  // === HEADER - COMPANY INFO ===
-  addCommand(ALIGN_CENTER);
-  addCommand(SIZE_DOUBLE_HEIGHT);
-  addCommand(BOLD_ON);
-  addLine(truncate(content.companyName, lineWidth));
-  addCommand(BOLD_OFF);
-  addCommand(SIZE_NORMAL);
-  addCommand(LINE_FEED);
-
-  // Company address and phone (centered, normal size)
-  addCommand(ALIGN_CENTER);
-  // Split address if too long
-  const addressLines = splitTextToLines(content.companyAddress, lineWidth);
-  addressLines.forEach(line => addLine(line));
-  addLine(`Ph: ${content.companyPhone}`);
-  addCommand(LINE_FEED);
-
-  // === DATE ===
-  addCommand(ALIGN_CENTER);
-  addLine(content.estimateDate);
-  addCommand(ALIGN_LEFT);
-  addSeparator();
-
-  // === CUSTOMER INFO ===
-  addCommand(BOLD_ON);
-  addLine('Bill To:');
-  addCommand(BOLD_OFF);
-  addLine(truncate(content.customerName, lineWidth));
-  // Split customer address if too long
-  const custAddressLines = splitTextToLines(content.customerAddress, lineWidth);
-  custAddressLines.forEach(line => addLine(line));
-  addCommand(LINE_FEED);
-
-  // === PREVIOUS PENDING (if any) ===
-  if (content.previousPending && content.previousPending > 0) {
-    addCommand(ALIGN_CENTER);
-    addCommand(BOLD_ON);
-    addLine('Previous Pending:');
-    addLine(`Rs ${content.previousPending.toFixed(2)}`);
-    addCommand(BOLD_OFF);
-    addCommand(ALIGN_LEFT);
-    addCommand(LINE_FEED);
+  // Customer Info (left-aligned)
+  bytes.push(...setAlignment('left'));
+  bytes.push(...setBold(true));
+  bytes.push(...printLine('Bill To:', lineWidth));
+  bytes.push(...setBold(false));
+  bytes.push(...printLine(data.customerName, lineWidth));
+  if (data.customerAddress) {
+    bytes.push(...printLine(data.customerAddress, lineWidth));
   }
 
-  addSeparator();
+  // Previous pending if exists
+  if (data.previousPending && data.previousPending > 0) {
+    bytes.push(...printTwoColumn('Previous Pending:', `Rs${data.previousPending.toFixed(2)}`, lineWidth));
+  }
 
-  // === ITEMS HEADER ===
-  addCommand(BOLD_ON);
-  const itemColWidth = lineWidth - 12; // Reserve 12 chars for amount
-  const headerItem = 'Item'.padEnd(itemColWidth, ' ');
-  const headerAmount = 'Amount'.padStart(12, ' ');
-  addLine(headerItem + headerAmount);
-  addCommand(BOLD_OFF);
-  addSeparator();
+  // Separator
+  bytes.push(...printSeparator('-', lineWidth));
 
-  // === LINE ITEMS ===
-  content.lineItems.forEach((item) => {
-    // Item name (truncate if needed)
-    addLine(truncate(item.description, lineWidth));
-    
-    // Quantity x Rate = Amount (aligned)
-    const qtyRate = `${item.quantity} x Rs ${item.rate.toFixed(2)}`;
-    const amount = `Rs ${item.amount.toFixed(2)}`;
-    const spacing = lineWidth - qtyRate.length - amount.length;
-    const spacer = spacing > 0 ? ' '.repeat(spacing) : ' ';
-    addLine(qtyRate + spacer + amount);
-    
-    // Add spacing between items
-    addItemSpacing();
+  // Date & Time (centered)
+  bytes.push(...setAlignment('center'));
+  bytes.push(...printLine(`Date: ${data.estimateDate}`, lineWidth));
+
+  // Estimate Number (centered, bold)
+  bytes.push(...setBold(true));
+  bytes.push(...printLine(`Invoice No: ${data.estimateNumber}`, lineWidth));
+  bytes.push(...setBold(false));
+
+  // Separator
+  bytes.push(...setAlignment('left'));
+  bytes.push(...printSeparator('=', lineWidth));
+
+  // Product Lines - Two-line format (ALL items, no deduplication)
+  data.lineItems.forEach((item, index) => {
+    // Line 1: Product Name (bold)
+    bytes.push(...setBold(true));
+    const itemName = `${index + 1}. ${item.description}`;
+    bytes.push(...printLine(itemName, lineWidth));
+    bytes.push(...setBold(false));
+
+    // Line 2: Qty x Rate = Amount
+    const qtyRate = `${item.quantity} x Rs${item.rate.toFixed(2)}`;
+    const amount = `Rs${item.amount.toFixed(2)}`;
+    bytes.push(...printTwoColumn(qtyRate, amount, lineWidth));
+
+    // Item spacing
+    if (index < data.lineItems.length - 1) {
+      bytes.push(...feedLines(settings.itemSpacing));
+    }
   });
 
-  addSeparator();
+  // Separator
+  bytes.push(...printSeparator('=', lineWidth));
 
-  // === TOTALS ===
-  addCommand(BOLD_ON);
-  addCommand(SIZE_DOUBLE_HEIGHT);
-  const totalLabel = 'TOTAL:';
-  const totalAmount = `Rs ${content.totalAmount.toFixed(2)}`;
-  const totalSpacing = lineWidth - totalLabel.length - totalAmount.length;
-  const totalSpacer = totalSpacing > 0 ? ' '.repeat(totalSpacing) : ' ';
-  addLine(totalLabel + totalSpacer + totalAmount);
-  addCommand(SIZE_NORMAL);
-  addCommand(BOLD_OFF);
+  // Totals
+  bytes.push(...printTwoColumn('Sub Total:', `Rs${data.totalAmount.toFixed(2)}`, lineWidth));
 
-  // Paid amount
-  const paidLabel = 'Paid:';
-  const paidAmount = `Rs ${content.paidAmount.toFixed(2)}`;
-  const paidSpacing = lineWidth - paidLabel.length - paidAmount.length;
-  const paidSpacer = paidSpacing > 0 ? ' '.repeat(paidSpacing) : ' ';
-  addLine(paidLabel + paidSpacer + paidAmount);
+  bytes.push(...setBold(true));
+  bytes.push(...printTwoColumn('Current Bal.:', `Rs${data.totalAmount.toFixed(2)}`, lineWidth));
+  bytes.push(...setBold(false));
 
-  // Pending amount
-  if (content.pendingAmount > 0) {
-    addCommand(BOLD_ON);
-    const pendingLabel = 'Pending:';
-    const pendingAmount = `Rs ${content.pendingAmount.toFixed(2)}`;
-    const pendingSpacing = lineWidth - pendingLabel.length - pendingAmount.length;
-    const pendingSpacer = pendingSpacing > 0 ? ' '.repeat(pendingSpacing) : ' ';
-    addLine(pendingLabel + pendingSpacer + pendingAmount);
-    addCommand(BOLD_OFF);
-  }
+  bytes.push(...printSeparator('-', lineWidth));
 
-  // Total pending (if previous pending exists)
-  if (content.previousPending && content.previousPending > 0) {
-    addCommand(LINE_FEED);
-    const prevLabel = 'Prev. Pending:';
-    const prevAmount = `Rs ${content.previousPending.toFixed(2)}`;
-    const prevSpacing = lineWidth - prevLabel.length - prevAmount.length;
-    const prevSpacer = prevSpacing > 0 ? ' '.repeat(prevSpacing) : ' ';
-    addLine(prevLabel + prevSpacer + prevAmount);
-    
-    addCommand(BOLD_ON);
-    const totalPendingLabel = 'Total Pending:';
-    const totalPendingAmount = `Rs ${(content.pendingAmount + content.previousPending).toFixed(2)}`;
-    const totalPendingSpacing = lineWidth - totalPendingLabel.length - totalPendingAmount.length;
-    const totalPendingSpacer = totalPendingSpacing > 0 ? ' '.repeat(totalPendingSpacing) : ' ';
-    addLine(totalPendingLabel + totalPendingSpacer + totalPendingAmount);
-    addCommand(BOLD_OFF);
-  }
+  const totalPending = (data.previousPending || 0) + data.pendingAmount;
+  bytes.push(...setBold(true));
+  bytes.push(...printTwoColumn('Total Pending:', `Rs${totalPending.toFixed(2)}`, lineWidth));
+  bytes.push(...setBold(false));
 
-  addCommand(LINE_FEED);
-  addSeparator();
+  // Footer: Thank You (centered)
+  bytes.push(...setAlignment('center'));
+  bytes.push(...feedLines(1));
+  bytes.push(...setBold(true));
+  bytes.push(...printLine('Thank You', lineWidth));
+  bytes.push(...setBold(false));
+  bytes.push(...printLine('Visit Again', lineWidth));
 
-  // === FOOTER ===
-  addCommand(ALIGN_CENTER);
-  addCommand(BOLD_ON);
-  addLine('Thank You!');
-  addCommand(BOLD_OFF);
+  // Feed sufficient lines before cut
+  bytes.push(...feedLines(4));
+  
+  // Cut paper
+  bytes.push(...cutPaper());
 
-  // Feed and cut
-  addCommand(LINE_FEED);
-  addCommand(LINE_FEED);
-  addCommand(LINE_FEED);
-  addCommand(CUT_PAPER);
-
-  return new Uint8Array(commands);
+  return new Uint8Array(bytes);
 }
 
-/**
- * Split text into multiple lines if it exceeds maxLength
- */
-function splitTextToLines(text: string, maxLength: number): string[] {
-  if (text.length <= maxLength) return [text];
-  
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let currentLine = '';
-  
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    if (testLine.length <= maxLength) {
-      currentLine = testLine;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word.length <= maxLength ? word : word.substring(0, maxLength);
-    }
-  }
-  
-  if (currentLine) lines.push(currentLine);
-  return lines;
-}
-
-/**
- * Get computed encoding metadata for diagnostics
- */
-export function getEncodingMetadata(settings: ThermalEncoderSettings): {
-  paperWidth: string;
-  lineWidth: number;
-  lineSpacing: number;
-  itemSpacing: number;
-} {
-  const lineWidth = settings.lineWidth || (settings.paperWidth === '58mm' ? 32 : 42);
+export function getEncodingMetadata(settings: EncoderSettings) {
   return {
     paperWidth: settings.paperWidth,
-    lineWidth,
+    lineWidth: settings.lineWidth,
     lineSpacing: settings.lineSpacing,
     itemSpacing: settings.itemSpacing,
   };

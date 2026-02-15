@@ -161,16 +161,22 @@ export function useBluetoothThermalPrinter(): BluetoothPrinterHook {
     setState((prev) => ({ ...prev, isPrinting: true, error: null }));
 
     try {
-      // Split data into chunks if needed (some printers have MTU limits)
-      const chunkSize = 512;
+      // Improved chunking strategy for long receipts
+      const chunkSize = 256; // Smaller chunks for better reliability
+      const delayBetweenChunks = 80; // Longer delay for full receipt delivery
+
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
         await characteristicRef.current.writeValue(chunk);
-        // Small delay between chunks
+        
+        // Delay between chunks to ensure sequential completion
         if (i + chunkSize < data.length) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, delayBetweenChunks));
         }
       }
+
+      // Extra delay before final feed/cut to ensure all content is sent
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       setState((prev) => ({ ...prev, isPrinting: false }));
     } catch (err: any) {

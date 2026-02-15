@@ -226,7 +226,7 @@ export default function ContactsModule() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-2 shadow-2xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingContact ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
             <DialogDescription>

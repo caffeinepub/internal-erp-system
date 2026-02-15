@@ -26,7 +26,7 @@ export function getPreviewStyles(settings: ThermalQuickPreviewSettings): React.C
   };
 }
 
-// Convert settings to print window CSS
+// Convert settings to print window CSS with improved fitting
 export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
   const widthValue = settings.paperWidth === '58mm' ? '58mm' : '80mm';
   
@@ -48,10 +48,12 @@ export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
       color: #000;
       font-size: ${settings.fontSize}px;
       line-height: ${settings.lineSpacing};
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
     .thermal-container {
       width: 100%;
-      max-width: ${widthValue};
+      max-width: 100%;
     }
     .header {
       text-align: center;
@@ -63,11 +65,13 @@ export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
       font-size: ${Math.round(settings.fontSize * 1.45)}px;
       font-weight: bold;
       margin-bottom: 4px;
+      word-wrap: break-word;
     }
     .company-address {
       font-size: ${Math.round(settings.fontSize * 0.91)}px;
       line-height: ${settings.lineSpacing};
       margin-bottom: 2px;
+      word-wrap: break-word;
     }
     .company-phone {
       font-size: ${Math.round(settings.fontSize * 0.91)}px;
@@ -88,10 +92,12 @@ export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
       font-size: ${settings.fontSize}px;
       font-weight: bold;
       margin-bottom: 2px;
+      word-wrap: break-word;
     }
     .customer-address {
       font-size: ${Math.round(settings.fontSize * 0.91)}px;
       line-height: ${settings.lineSpacing};
+      word-wrap: break-word;
     }
     .estimate-date {
       text-align: center;
@@ -132,6 +138,8 @@ export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
     .item-name {
       font-weight: bold;
       margin-bottom: 2px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     .item-details {
       display: flex;
@@ -186,7 +194,7 @@ export function getPrintStyles(settings: ThermalQuickPreviewSettings): string {
         max-width: ${widthValue};
       }
       body {
-        padding: 0;
+        padding: ${settings.containerPadding}mm;
         margin: 0;
       }
       @page {

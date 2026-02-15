@@ -76,6 +76,7 @@ export const Purchase = IDL.Record({
 export const EstimateItem = IDL.Record({
   'rate' : IDL.Float64,
   'description' : IDL.Text,
+  'productId' : IDL.Opt(IDL.Nat),
   'quantity' : IDL.Float64,
   'amount' : IDL.Float64,
 });
@@ -206,6 +207,7 @@ export const idlService = IDL.Service({
       [],
     ),
   'deleteContact' : IDL.Func([IDL.Nat], [], []),
+  'deleteEstimate' : IDL.Func([IDL.Nat], [], []),
   'deleteProduct' : IDL.Func([IDL.Nat], [], []),
   'deletePurchase' : IDL.Func([IDL.Nat], [], []),
   'generateProfitAndLossReport' : IDL.Func(
@@ -397,6 +399,7 @@ export const idlFactory = ({ IDL }) => {
   const EstimateItem = IDL.Record({
     'rate' : IDL.Float64,
     'description' : IDL.Text,
+    'productId' : IDL.Opt(IDL.Nat),
     'quantity' : IDL.Float64,
     'amount' : IDL.Float64,
   });
@@ -527,6 +530,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'deleteContact' : IDL.Func([IDL.Nat], [], []),
+    'deleteEstimate' : IDL.Func([IDL.Nat], [], []),
     'deleteProduct' : IDL.Func([IDL.Nat], [], []),
     'deletePurchase' : IDL.Func([IDL.Nat], [], []),
     'generateProfitAndLossReport' : IDL.Func(

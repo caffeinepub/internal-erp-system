@@ -17,18 +17,20 @@ export default function MobileNavDrawer({
   onModuleChange,
   isAdmin = false
 }: MobileNavDrawerProps) {
+  const handleModuleChange = (module: ModuleView) => {
+    onModuleChange(module);
+    onClose();
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        side="left" 
-        className="w-64 p-0 bg-card border-r-2 shadow-2xl"
-      >
+      <SheetContent side="left" className="w-64 p-0">
         <div className="py-4">
           <h2 className="px-4 mb-4 text-lg font-semibold">Navigation</h2>
           <PrimaryNavigation
             variant="sidebar"
             activeModule={activeModule}
-            onModuleChange={onModuleChange}
+            onModuleChange={handleModuleChange}
             isAdmin={isAdmin}
           />
         </div>

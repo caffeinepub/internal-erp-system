@@ -1,65 +1,141 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Open access: remove Internet Identity login gating from the ERP frontend",
+  "title": "ERP Billing rebuild (frontend): reliable estimate editing with product-linked line items, pending balances, inventory validation, and purchase-price autofill",
   "requirements": [
     {
-      "id": "REQ-18",
-      "summary": "Always render the main Dashboard flow (AppShell + modules) without requiring Internet Identity login and without showing the LoginPage as a gate.",
+      "id": "REQ-1",
+      "summary": "Make product selection reliably populate the draft line item (productId/description/rate) and ensure Add Item works without losing selection or requiring re-entry.",
       "acceptanceCriteria": [
-        "Opening the app in a fresh browser session shows the Dashboard (not the LoginPage) without any login action.",
-        "No user-facing message implies that login is required to use core modules (Products, Inventory, Contacts, Purchasing, Billing, Finance)."
+        "In the Estimate Editor, selecting a product updates the current line item description and rate immediately.",
+        "Clicking “Add Item” adds the selected product as a line item with the expected quantity, rate, and computed amount.",
+        "After adding an item, the draft line-item inputs reset cleanly and do not retain a stale product selection.",
+        "No regression where product selection appears chosen but productId is empty/cleared unexpectedly."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
           "operation": "modify",
-          "description": "Update the root render flow to always show the main Dashboard UI instead of conditionally gating on Internet Identity authentication (do not route/branch to LoginPage). Keep existing initialization/loading handling, but remove login-blocking. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-19",
-      "summary": "Disable first-time profile setup gating in open mode so anonymous users are never prompted with ProfileSetupModal.",
-      "acceptanceCriteria": [
-        "When not logged in, the ProfileSetupModal never appears.",
-        "The app remains usable without creating/saving a user profile."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Ensure ProfileSetupModal is strictly conditioned on authenticated state (and does not appear for anonymous/open access users), even while the rest of the app renders. Verify the component's usage instructions before implementing."
+          "description": "Fix the draft line-item state flow so ProductAutocomplete selection atomically sets productId + description + rate and the selected productId is not cleared unexpectedly (e.g., by description typing). Ensure Add Item consumes the current draft values, computes amount, appends to lineItems, and fully resets draft inputs (including productId) after successful add. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/ProfileSetupModal.tsx",
+          "path": "frontend/src/components/ProductAutocomplete.tsx",
           "operation": "modify",
-          "description": "Add a defensive guard so the modal cannot be shown/used in anonymous mode (e.g., early-return null when the app is not authenticated) to prevent future regressions. Verify the component's usage instructions before implementing."
+          "description": "Harden selection behavior to avoid UI showing a selected label when parent value is empty/cleared: ensure the displayed selected label strictly reflects the controlled `value` prop and selection events do not double-fire. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-20",
-      "summary": "Fetch and resolve roles in open mode by allowing role queries to run without an Internet Identity (anonymous actor), so admin/role-gated UI works (e.g., Backup module visibility/access).",
+      "id": "REQ-2",
+      "summary": "Ensure estimate create/edit persists via backend calls and the Billing list updates immediately with correct totals and status (no tax).",
       "acceptanceCriteria": [
-        "The app can fetch and display a user role even when not logged in (no Internet Identity identity present).",
-        "Admin-only sections that depend on role (e.g., Backup module) are accessible in open mode when the backend reports an admin role."
+        "Creating an estimate persists it via backend APIs and it appears in the BillingModule estimates list without requiring a page refresh.",
+        "Editing an existing estimate updates the persisted record and the BillingModule list reflects the new values.",
+        "Line items support quantity, rate/price, and amount; totals are computed as the sum of line item amounts.",
+        "No tax calculation is added."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Adjust the role-fetching query (useGetCallerUserRole) to execute when an actor is available even if no Internet Identity is present (anonymous mode). Update query keying to remain stable for anonymous callers and avoid unnecessary refetch loops. Verify the component's usage instructions before implementing."
+          "description": "Improve estimate mutations to update the React Query cache immediately on create/edit (in addition to invalidation) so the BillingModule list reflects changes without refresh. Keep totals derived from line item amounts only and do not add tax logic. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/Dashboard.tsx",
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
           "operation": "modify",
-          "description": "Ensure admin gating for the Backup module relies on the resolved role from useGetCallerUserRole in open mode (handle loading/undefined role states gracefully so the UI updates once role is fetched). Verify the component's usage instructions before implementing."
+          "description": "Ensure save flow uses computed totals (sum of item.amount) and relies on backend persistence; after create/edit, ensure UI navigations do not require a manual refresh to see updates in the Billing list (align with updated query cache behavior). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/PrimaryNavigation.tsx",
+          "path": "frontend/src/components/BillingModule.tsx",
           "operation": "modify",
-          "description": "Ensure admin-only navigation visibility (Backup) updates correctly based on the role fetched in open mode (anonymous callers), including initial/loading states. Verify the component's usage instructions before implementing."
+          "description": "Align Billing list rendering with the authoritative query data (and updated cache) so new/edited estimates appear and reflect totals/status immediately; avoid relying on IndexedDB-only updates for immediate UI correctness. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add/ensure Bill To customer selection in the estimate editor and show previous pending balance with a clear red-flag visual when pending > 0.",
+      "acceptanceCriteria": [
+        "The estimate editor provides a customer selector populated from Bill To contacts.",
+        "Selecting a customer fills customer name and address/contact info fields from the contact record.",
+        "The editor shows “Previous Pending Balance” for the selected customer, calculated from previously saved estimates’ pending amounts (excluding the currently edited estimate).",
+        "When previous pending balance > 0, it is visually highlighted as an alert/red-flag indicator."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
+          "operation": "modify",
+          "description": "Make the Bill To customer selector fully controlled so edit mode displays the current customer selection; continue to populate name/address from the selected contact record. Display “Previous Pending Balance” with destructive/red-flag styling when > 0 and ensure it excludes the currently edited estimate. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Enforce inventory stock constraints in the estimate editor for product-linked items and block add/save when requested quantity exceeds available stock.",
+      "acceptanceCriteria": [
+        "When a product-linked line item quantity exceeds available stock, the UI blocks adding/saving and shows a clear validation message.",
+        "Saving a new estimate decreases the corresponding product stock quantities in the backend and the updated stock is visible in Products/Inventory views after query refresh.",
+        "Editing an estimate results in correct net stock changes (no double-decrement, no drift).",
+        "Stock updates are based on productId linkage, not free-text description matching."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
+          "operation": "modify",
+          "description": "Tighten stock validation for product-linked items at both Add Item and Save time, ensuring checks are strictly based on productId and produce clear inline validation messaging. In edit mode, keep the existing UI-side 'restore original quantities then apply updated quantities' availability calculation for validation to prevent false negatives. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Ensure estimate create/edit mutations continue to invalidate product queries (and optionally update product cache if safe) so Inventory/Products views reflect stock changes after refresh/re-query. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Auto-fill estimate line item rate from latest Purchase-module price for the selected product, falling back to product default price, while allowing manual override.",
+      "acceptanceCriteria": [
+        "When selecting a product in the estimate editor, the rate field is set to the latest matching purchase price from Purchase history for that product.",
+        "If no purchases exist for the selected product, the rate field falls back to the product’s stored price.",
+        "The user can still manually override the rate after auto-fill."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
+          "operation": "modify",
+          "description": "Load purchase history (read-only) and, on product selection, compute the most recent matching purchase price for that product (using the Purchase module’s stored history) to auto-fill the draft rate; if none found, fall back to the product’s default price. Ensure manual edits to the rate field always override the auto-filled value. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/purchasePrice.ts",
+          "operation": "create",
+          "description": "Add a small utility to derive the latest purchase price for a selected product from purchase history (e.g., most recent by purchaseDate) and provide a safe fallback strategy to product default price when no match exists. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Record payments against estimates and keep paid/pending amounts and status consistent across Billing list and customer pending calculations, with red emphasis for pending > 0.",
+      "acceptanceCriteria": [
+        "Recording a payment updates the estimate’s paid amount, pending amount, and paid/unpaid status in persisted storage.",
+        "Billing list shows Paid and Pending columns that match the recorded payment and total amount.",
+        "Customer “Previous Pending Balance” uses the latest persisted pending amounts (post-payment) for calculations.",
+        "Pending amounts > 0 are visually emphasized (red/destructive styling) in the Billing list."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update the record-payment mutation to immediately update the estimates query cache (in addition to invalidation) so Billing and pending-balance calculations reflect the new paid/pending values consistently without requiring refresh. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/BillingModule.tsx",
+          "operation": "modify",
+          "description": "Ensure Billing list consistently renders Paid/Pending/Status from the latest query data and keeps pending > 0 visually emphasized using destructive styling; after successful payment recording, ensure the UI reflects the updated amounts consistently. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/EstimateEditorPage.tsx",
+          "operation": "modify",
+          "description": "Ensure “Previous Pending Balance” calculations stay consistent with post-payment persisted pending amounts by relying on the updated estimates query data (and excluding the currently edited estimate). Verify the component's usage instructions before implementing."
         }
       ]
     }

@@ -1,560 +1,112 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 53,
-  "summary": "Internal ERP System is a web-based business management app deployed on the Internet Computer. The React/Tailwind frontend authenticates users via Internet Identity and communicates with a Motoko canister backend through a generated actor interface. The system supports role-based access control and admin/user governance (including UI for access control and password-based admin setup/change flows), user profile setup, product catalog management, inventory stock updates, customer/supplier contact management, estimate (billing) creation and payment marking, company branding (including logo as an ExternalBlob), print-ready estimate previews, and a Purchasing module to record received purchases. It also includes a dashboard with basic KPIs and a finance module with derived inventory/value metrics, plus PWA install/offline support via manifest and service worker caching.",
+  "projectStateVersion": 3,
+  "summary": "Rebuild a full ERP-style billing module (estimates/invoices saved, listed, editable) integrated with contacts (Bill To), inventory stock, and purchase-module pricing, including pending-amount tracking and payment-aware balance calculations.",
   "architectural_notes": [
-    "Frontend uses React + TypeScript with @tanstack/react-query for query/mutation orchestration, cache invalidation, and identity-scoped actor recreation.",
-    "Authentication is handled through @dfinity/auth-client (Internet Identity). Identity is stored/loaded on app mount and passed to the canister actor via agentOptions.",
-    "Backend is a Motoko canister that composes functionality via mixins (authorization mixin and blob-storage mixin).",
-    "Authorization is enforced server-side with an AccessControl module (admin/user/guest) and an initialization flow where a secret token can promote the first eligible caller to admin.",
-    "Domain data is modeled as typed records (Product, Contact, Estimate, CompanyBranding) stored in Map collections and exposed via query/shared canister methods.",
-    "Upgrade/migration support is present via a migration module that renames the previous invoices field to estimates.",
-    "PWA capabilities include a web manifest, service worker precaching and runtime caching, and a custom install prompt component.",
-    "UI is composed of modular feature pages (Dashboard, Inventory, Contacts, Products, Billing, Finance) built on shadcn-style components and Tailwind theming, with dark/light theme switching via next-themes.",
-    "Frontend previously-stubbed admin/access-control UI screens (admin login, access denied, admin password set/change) are now implemented and integrated into the app flow.",
-    "Added frontend linting/guardrails around React Query key construction (e.g., no-bigint-in-query-keys) and Internet Identity provider configuration to reduce cache-key and auth-provider misconfiguration risks."
+    "Billing module is ERP-style: persist and relate estimates/invoices, products, contacts, inventory, purchases, and payments.",
+    "Billing calculations must derive outstanding/pending balance from historical estimates/invoices minus recorded payments."
   ],
   "known_issues": [
-    "InventoryModule always shows the \"Update\" action regardless of role; backend allows any #user to update stock, but the UI also fetches isAdmin and does not use it for gating, which may not match intended permissions.",
-    "The backend printEstimate endpoint (and frontend usePrintEstimate hook) exists but the current print flow uses the estimate already loaded in the list rather than fetching print data from the backend.",
-    "Backend authorization initialization hard-depends on the CAFFEINE_ADMIN_TOKEN environment variable; if not set, _initializeAccessControlWithSecret traps and the app cannot proceed for authenticated users.",
-    "Blob-storage environment variable key appears misspelled as CAFFFEINE_STORAGE_CASHIER_PRINCIPAL (triple 'F'); misconfiguration would cause runtime traps.",
-    "Finance module explicitly notes limited backend financial data (no transaction ledger / profit-loss / detailed reporting), so current financial insights are derived from product catalog and stock only.",
-    "User reports: cannot see an Add option in the deployed link (expected admin add controls).",
-    "User reports deployed app data is blank/reset after rebuild/redeploy; indicates canister state was wiped (no backup/snapshot or upgrade-safe stable-memory migration in place).",
-    "User feedback: production v38 UI/UX regression (previous version was better); requires reverting or adjusting recent UI changes",
-    "User requests reverting to Version 36 (current deployed version v39 not desired).",
-    "User feedback: Production v41 UI still has confusing background/overlap; selected module content is not clearly separated/foregrounded."
+    "Automated build attempt for the billing module failed previously with 'AI was unable to implement your request'; may require breaking work into smaller steps."
   ],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "IF-1",
-      "title": "Internet Identity authentication (login/logout and persisted identity)",
-      "synonyms": [
-        "II auth",
-        "DFINITY AuthClient login"
-      ],
-      "description": "Provides secure authentication via Internet Identity using AuthClient, loads any stored identity on mount, supports login with a long TTL delegation, and logout/clear of identity.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-2",
-      "title": "Backend actor creation and identity-scoped API client",
-      "synonyms": [
-        "IC actor hook",
-        "useActor"
-      ],
-      "description": "Creates an anonymous actor when unauthenticated and an authenticated actor when identity is present; recreates the actor on identity changes and invalidates/refetches all non-actor React Query queries accordingly.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-3",
-      "title": "Role-based access control with admin secret initialization",
-      "synonyms": [
-        "AccessControl",
-        "RBAC"
-      ],
-      "description": "Motoko backend assigns roles (#admin/#user/#guest). An initialization endpoint uses a server-side CAFFEINE_ADMIN_TOKEN and a user-provided secret to optionally make the first eligible caller admin; provides role lookup and admin check endpoints and supports admin-only role assignment.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-4",
-      "title": "User profile management and first-time profile setup modal",
-      "synonyms": [
-        "Profile setup",
-        "UserProfile CRUD (caller)"
-      ],
-      "description": "Backend supports get/save of the caller profile (name). Frontend fetches the current profile and shows a blocking setup modal when profile is missing, allowing the user to save their name.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-5",
-      "title": "User approval workflow (request/list/set approval)",
-      "synonyms": [
-        "ApprovalState",
-        "UserApproval"
-      ],
-      "description": "Backend tracks approval status per principal (pending/approved/rejected), allows users to request approval, and allows admins to list and set approvals; also provides an isCallerApproved check (admin is implicitly approved).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-6",
-      "title": "Product catalog management (list/add/update/delete)",
-      "synonyms": [
-        "Products module",
-        "Product CRUD"
-      ],
-      "description": "Admins can add, update, and delete products (name/category/price, active status maintained); all users can list products. Frontend provides a product management UI with form validation and admin-only action controls.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-7",
-      "title": "Inventory stock quantity updates",
-      "synonyms": [
-        "Stock management",
-        "updateStock"
-      ],
-      "description": "Allows authenticated users to update a product’s stockQuantity and records an inventory item with lastUpdated timestamp. Frontend provides an inventory table with low-stock/out-of-stock indicators and a modal to update quantities.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-8",
-      "title": "Customer and supplier contact management",
-      "synonyms": [
-        "Contacts module",
-        "Customer/Supplier directory"
-      ],
-      "description": "Admins can add/update/delete contacts with flags for customer and/or supplier; all users can list contacts. Frontend provides tabbed views for all/customers/suppliers and role-gated editing actions.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-9",
-      "title": "Estimates (billing) management",
-      "synonyms": [
-        "Billing module",
-        "Estimate CRUD"
-      ],
-      "description": "Admins can create and update estimates with line items, totals (subtotal/tax/net), createdAt timestamp, and paid status. All users can list estimates; users can mark an estimate as paid. Frontend supports composing line items from products and customers and auto-calculating totals.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-10",
-      "title": "Company branding settings with logo blob support",
-      "synonyms": [
-        "Branding",
-        "Company logo/address"
-      ],
-      "description": "Admins can set company branding (name, address, optional logo stored as ExternalBlob). Users can read branding. Frontend supports uploading an image file, converting it to ExternalBlob bytes, and saving it for use in printed documents.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-11",
-      "title": "Print-ready estimate preview and browser printing",
-      "synonyms": [
-        "EstimatePrintView",
-        "Print dialog"
-      ],
-      "description": "Frontend renders a styled estimate preview (including branding and optional logo URL) and opens a print window with embedded HTML/CSS for printing; supports printing paid/unpaid status and formatted totals.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-12",
-      "title": "Dashboard overview KPIs and low-stock alerts",
-      "synonyms": [
-        "DashboardOverview",
-        "KPIs"
-      ],
-      "description": "Displays derived operational metrics (total products, active products, low stock count, inventory value, contact counts, category breakdown) and highlights low-stock products.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-13",
-      "title": "Finance & reporting (derived metrics only)",
-      "synonyms": [
-        "FinanceModule",
-        "Inventory valuation reporting"
-      ],
-      "description": "Computes basic financial summaries from existing product/contact data (inventory value, average product price, active products) and shows a top-N distribution of inventory value by product.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-14",
-      "title": "PWA support (manifest, service worker caching, install prompt)",
-      "synonyms": [
-        "Offline support",
-        "Installable web app"
-      ],
-      "description": "Includes a PWA manifest with icons and metadata, a service worker that precaches core assets and provides network-first runtime caching with offline fallback, and a UI prompt that leverages beforeinstallprompt and remembers dismissals.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-15",
-      "title": "Blob-storage gateway integration and maintenance endpoints",
-      "synonyms": [
-        "Caffeine storage mixin",
-        "Blob GC tooling"
-      ],
-      "description": "Backend includes storage maintenance endpoints to update authorized gateway principals, list dead blobs, confirm pruning and trigger GC, check blob liveness, and refill a cashier canister with cycles (cashier-authorized).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-16",
-      "title": "App shell UI with theming, header/footer, and tabbed navigation",
-      "synonyms": [
-        "Layout",
-        "Theme toggle"
-      ],
-      "description": "Provides a tab-based dashboard navigation across modules, a header showing user name/principal and role badge with logout, and dark/light theme switching using next-themes, plus a simple footer.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-17",
-      "title": "Purchasing module (record received purchases)",
-      "synonyms": [
-        "PurchaseModule",
-        "Purchases/Receiving"
-      ],
-      "description": "Adds a Purchasing UI/module to record received purchases/materials with supplier-related details and purchase line information for operational tracking.",
-      "reqIds": [
-        "AR-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-18",
-      "title": "Admin access control UI + admin password setup/change flows",
-      "synonyms": [
-        "AdminLoginPage",
-        "SetAdminPasswordModal",
-        "ChangePasswordModal",
-        "AccessDeniedScreen",
-        "UserAccessControlModule"
-      ],
-      "description": "Implements previously stubbed admin/access-control screens and modals, including an access denied screen, admin login/setup, and password set/change flows, plus an admin-facing access control module for managing user access from the UI.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-19",
-      "title": "Estimate editing option in Billing UI",
-      "synonyms": [
-        "Edit Estimate button",
-        "Update estimate from list"
-      ],
-      "description": "Billing/Estimates UI now exposes an explicit edit/update action so admins can modify existing estimates from the list/detail flow (addressing the previously missing editing option in the UI).",
-      "reqIds": [
-        "AR-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-20",
-      "title": "Custom app icon (PWA/manifest/favicon) set to provided MK logo",
-      "synonyms": [
-        "PWA icon replacement",
-        "Browser tab icon"
-      ],
-      "description": "Replaced the PWA/manifest and browser tab application icons with the provided MK logo image; build template includes image resize/prune scripts to keep icons consistent.",
-      "reqIds": [
-        "AR-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "IF-21",
-      "title": "Web Bluetooth thermal receipt printing (client-side)",
-      "synonyms": [
-        "Bluetooth thermal printer",
-        "Web Bluetooth printing",
-        "useBluetoothThermalPrinter"
-      ],
-      "description": "Frontend includes a Web Bluetooth integration for printing receipts to supported thermal printers, including receipt/ESC-POS style encoding utilities and browser Bluetooth device connection/printing flow.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-22",
-      "title": "Project code export + ICP CLI build/deploy template",
-      "synonyms": [
-        "Code export instructions",
-        "build-template",
-        "deploy.sh",
-        "icp.yaml"
-      ],
-      "description": "Repository now includes a build/deploy template with README and scripts (Dockerfile, icp.yaml, deploy script, workspace/package configs, image resize/prune scripts, and canister YAML templates) to enable exporting the full project and deploying via ICP/dfx tooling.",
-      "reqIds": [
-        "AR-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-a-reusable-searchable-product-autocomplete-select-control-typeahead-that-can-replace-existing-product-select-dropdowns-where-users-choose-a-product-the-control-must-support-1-typing-to-filter-by-product-name-case-insensitive-2-keyboard-navigation-enter-to-select-3-showing-a-clear-no-results-empty-state-and-4-returning-the-selected-productid-plus-the-full-product-object-to-the-caller-so-the-caller-can-auto-fill-dependent-fields-e-g-name-description-rate-cost",
-      "title": "Implement a reusable searchable Product autocomplete/select control (typeahead) that can replace existing product <Select> dropdowns where users choose a product. The control must support: (1) typing to filter by product name (case-insensitive), (2) keyboard navigation + Enter to select, (3) showing a clear 'No results' empty state, and (4) returning the selected productId plus the full Product object to the caller so the caller can auto-fill dependent fields (e.g., name/description, rate/cost).",
+      "id": "feature-fix-the-estimate-product-selection-add-flow-so-selecting-a-product-reliably-populates-the-draft-line-item-fields-productid-description-and-rate-and-the-user-can-add-the-line-item-without-manual-re-entry-or-losing-the-selected-product",
+      "title": "Fix the estimate product selection/add flow so selecting a product reliably populates the draft line item fields (productId, description, and rate) and the user can add the line item without manual re-entry or losing the selected product.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-billing-billingmodule-estimate-line-item-product-picking-to-use-the-new-product-autocomplete-control-instead-of-the-current-product-selection-approach-and-auto-fill-line-item-fields-when-a-product-is-chosen-set-line-item-description-to-product-name-and-rate-to-product-price-preserve-the-ability-to-manually-edit-description-and-rate-after-auto-fill",
-      "title": "Update Billing (BillingModule) estimate line item product picking to use the new Product autocomplete control instead of the current product selection approach, and auto-fill line item fields when a product is chosen: set line item description to product.name and rate to product.price. Preserve the ability to manually edit description and rate after auto-fill.",
+      "id": "feature-ensure-the-billing-estimate-editor-supports-full-erp-saving-create-and-edit-estimates-that-persist-to-the-backend-and-appear-in-the-billing-list-with-correct-totals-and-status",
+      "title": "Ensure the billing estimate editor supports full ERP saving: create and edit estimates that persist to the backend and appear in the Billing list with correct totals and status.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-purchasing-purchasemodule-line-item-product-picking-to-use-the-new-product-autocomplete-control-instead-of-the-current-select-and-auto-fill-relevant-fields-when-a-product-is-chosen-set-productname-to-product-name-and-default-costprice-to-product-price-current-behavior-ensure-the-selected-product-can-be-quickly-found-via-typing-even-with-large-catalogs",
-      "title": "Update Purchasing (PurchaseModule) line item product picking to use the new Product autocomplete control instead of the current <Select>, and auto-fill relevant fields when a product is chosen: set productName to product.name and default costPrice to product.price (current behavior). Ensure the selected product can be quickly found via typing even with large catalogs.",
+      "id": "feature-add-ensure-bill-to-customer-selection-in-the-estimate-editor-using-the-existing-bill-to-contacts-list-and-display-the-customer-s-previous-outstanding-pending-amount-with-a-clear-red-flag-visual-when-pending-0",
+      "title": "Add/ensure Bill To customer selection in the estimate editor using the existing Bill To contacts list, and display the customer’s previous outstanding/pending amount with a clear red-flag visual when pending > 0.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-product-search-filtering-in-finance-reporting-financemodule-for-product-heavy-report-tabs-so-users-can-quickly-find-products-while-viewing-reports-at-minimum-add-a-product-search-input-that-filters-the-rows-shown-in-the-inventory-report-and-product-performance-tabs-by-product-name-category-case-insensitive",
-      "title": "Add product search filtering in Finance & Reporting (FinanceModule) for product-heavy report tabs so users can quickly find products while viewing reports. At minimum, add a 'Product search' input that filters the rows shown in the Inventory Report and Product Performance tabs by product name/category (case-insensitive).",
+      "id": "feature-ensure-inventory-stock-is-enforced-and-updated-based-on-product-linked-line-items-validate-available-stock-when-adding-saving-line-items-decrement-stock-on-estimate-creation-and-adjust-stock-correctly-when-editing-an-estimate-restore-original-quantities-then-apply-updated-quantities",
+      "title": "Ensure inventory stock is enforced and updated based on product-linked line items: validate available stock when adding/saving line items, decrement stock on estimate creation, and adjust stock correctly when editing an estimate (restore original quantities then apply updated quantities).",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-redesign-the-app-ui-ux-into-a-vyapar-like-but-legally-distinct-prototype-by-updating-layout-navigation-and-key-screens-while-keeping-existing-erp-functionality-intact-products-inventory-contacts-billing-estimates-purchasing-finance-reports-printing-the-redesign-must-change-the-overall-information-architecture-and-visual-patterns-enough-to-avoid-any-1-1-copying-of-vyapar-screens-while-still-providing-a-familiar-business-ledger-workflow-fast-entry-prominent-totals-clear-lists-quick-actions",
-      "title": "Redesign the app UI/UX into a Vyapar-like (but legally distinct) prototype by updating layout, navigation, and key screens while keeping existing ERP functionality intact (products, inventory, contacts, billing/estimates, purchasing, finance/reports, printing). The redesign must change the overall information architecture and visual patterns enough to avoid any 1:1 copying of Vyapar screens, while still providing a familiar business-ledger workflow (fast entry, prominent totals, clear lists, quick actions).",
+      "id": "feature-auto-fill-the-estimate-line-item-rate-price-from-the-most-recent-purchase-price-recorded-in-the-purchase-module-for-the-selected-product-if-no-purchase-history-exists-for-that-product-fall-back-to-the-product-s-default-price",
+      "title": "Auto-fill the estimate line item rate/price from the most recent purchase price recorded in the Purchase module for the selected product; if no purchase history exists for that product, fall back to the product’s default price.",
       "reqIds": [
         "REQ-5"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-sorting-options-to-complement-existing-search-autofill-for-the-main-list-table-views-estimates-list-in-billingmodule-purchases-list-in-purchasemodule-products-list-in-productsmodule-and-key-report-tables-in-financemodule-at-minimum-purchase-report-inventory-report-sales-report-product-performance-transactions-provide-a-consistent-sort-ui-field-ascending-descending-and-apply-sorting-client-side-to-the-currently-displayed-filtered-dataset",
-      "title": "Add sorting options to complement existing search/autofill, for the main list/table views: Estimates list in BillingModule, Purchases list in PurchaseModule, Products list in ProductsModule, and key report tables in FinanceModule (at minimum: Purchase Report, Inventory Report, Sales Report, Product Performance, Transactions). Provide a consistent sort UI (field + ascending/descending) and apply sorting client-side to the currently displayed/filtered dataset.",
+      "id": "feature-record-payments-against-estimates-and-ensure-pending-amount-is-automatically-recalculated-and-displayed-consistently-across-the-billing-list-and-customer-pending-calculations",
+      "title": "Record payments against estimates and ensure pending amount is automatically recalculated and displayed consistently across the Billing list and customer pending calculations.",
       "reqIds": [
         "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-admin-accessible-backup-tooling-to-export-and-import-app-data-so-the-user-can-keep-their-own-backups-and-restore-data-after-redeploys-this-must-include-a-backend-api-to-export-all-persisted-domain-data-products-contacts-estimates-purchases-inventory-snapshots-company-branding-metadata-except-raw-blob-bytes-if-not-feasible-and-an-import-api-that-restores-the-same-dataset-plus-a-frontend-ui-for-admins-to-download-an-export-file-and-upload-an-import-file",
-      "title": "Add admin-accessible backup tooling to export and import app data so the user can keep their own backups and restore data after redeploys. This must include a backend API to export all persisted domain data (products, contacts, estimates, purchases, inventory snapshots, company branding metadata except raw blob bytes if not feasible) and an import API that restores the same dataset, plus a frontend UI for admins to download an export file and upload an import file.",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-revert-the-production-v38-ui-ux-changes-by-restoring-a-simpler-pre-v38-style-app-shell-layout-navigation-spacing-chrome-while-keeping-all-existing-erp-functionality-intact-products-inventory-contacts-billing-estimates-purchasing-finance-reports-backup-printing",
-      "title": "Revert the production v38 UI/UX changes by restoring a simpler, pre-v38-style app shell layout (navigation + spacing + chrome) while keeping all existing ERP functionality intact (Products, Inventory, Contacts, Billing/Estimates, Purchasing, Finance/Reports, Backup, Printing).",
-      "reqIds": [
-        "REQ-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-header-navigation-and-module-page-containers-to-prioritize-readability-and-fast-entry-reduce-decorative-styling-e-g-heavy-translucency-backdrop-blur-simplify-typography-hierarchy-and-restore-compact-information-dense-spacing-consistent-with-the-pre-v38-experience",
-      "title": "Update the header, navigation, and module page containers to prioritize readability and fast entry: reduce decorative styling (e.g., heavy translucency/backdrop blur), simplify typography hierarchy, and restore compact, information-dense spacing consistent with the pre-v38 experience.",
-      "reqIds": [
-        "REQ-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-restore-the-app-ui-ux-to-match-the-version-36-layout-and-interaction-patterns-pre-v38-style-replacing-the-current-version-39-shell-styling-while-keeping-all-existing-erp-functionality-intact-products-inventory-contacts-billing-estimates-purchasing-finance-reports-backup-printing-this-includes-reverting-the-overall-app-shell-chrome-header-navigation-page-container-spacing-to-a-simpler-compact-information-dense-layout-consistent-with-v36",
-      "title": "Restore the app UI/UX to match the Version 36 layout and interaction patterns (pre-v38 style), replacing the current Version 39 shell styling while keeping all existing ERP functionality intact (Products, Inventory, Contacts, Billing/Estimates, Purchasing, Finance/Reports, Backup, Printing). This includes reverting the overall app shell chrome (header + navigation + page container spacing) to a simpler, compact, information-dense layout consistent with v36.",
-      "reqIds": [
-        "REQ-11"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-clearly-visible-app-version-label-reading-version-36-in-an-unobtrusive-location-e-g-footer-so-testers-can-confirm-the-rollback-target-in-the-running-ui",
-      "title": "Add a clearly visible app version label reading \"Version 36\" in an unobtrusive location (e.g., footer) so testers can confirm the rollback target in the running UI.",
-      "reqIds": [
-        "REQ-12"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-replace-the-desktop-sidebar-navigation-with-a-top-horizontal-menu-bar-tabs-menu-so-that-selecting-a-module-e-g-billing-purchase-switches-the-foreground-content-clearly-without-any-sidebar-background-overlap",
-      "title": "Replace the desktop sidebar navigation with a top horizontal menu bar (tabs/menu) so that selecting a module (e.g., Billing, Purchase) switches the foreground content clearly without any sidebar/background overlap.",
-      "reqIds": [
-        "REQ-13"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-primarynavigation-to-support-a-top-menu-variant-that-renders-a-compact-horizontal-list-of-module-buttons-suitable-for-desktop-and-optionally-scrollable-on-smaller-widths-reusing-existing-role-gating-logic",
-      "title": "Update PrimaryNavigation to support a top-menu variant that renders a compact horizontal list of module buttons suitable for desktop (and optionally scrollable on smaller widths), reusing existing role-gating logic.",
-      "reqIds": [
-        "REQ-14"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-adjust-mobile-navigation-behavior-to-avoid-showing-both-navigation-and-module-content-at-the-same-time-in-a-distracting-way-when-switching-modules-keep-a-single-clear-navigation-interaction-on-mobile",
-      "title": "Adjust mobile navigation behavior to avoid showing both navigation and module content at the same time in a distracting way when switching modules (keep a single, clear navigation interaction on mobile).",
-      "reqIds": [
-        "REQ-15"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-fix-the-confusing-unclear-background-layering-shown-in-the-uploaded-screenshot-by-making-dialogs-modals-clearly-foregrounded-and-the-underlying-page-clearly-dimmed-not-visually-blending-with-the-modal-apply-the-fix-consistently-to-dialogs-across-modules-e-g-contacts-add-edit-dialog-and-other-module-dialogs",
-      "title": "Fix the confusing/unclear background layering shown in the uploaded screenshot by making dialogs/modals clearly foregrounded and the underlying page clearly dimmed (not visually blending with the modal). Apply the fix consistently to dialogs across modules (e.g., Contacts add/edit dialog and other module dialogs).",
-      "reqIds": [
-        "REQ-16"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-app-shell-and-module-content-do-not-visually-overlap-or-double-show-behind-overlays-drawers-verify-z-index-stacking-and-backgrounds-for-header-top-navigation-main-content-container-and-mobile-drawer-so-foreground-content-is-always-clearly-separated-from-background-elements",
-      "title": "Ensure the app shell and module content do not visually overlap or “double show” behind overlays/drawers: verify z-index stacking and backgrounds for Header, top navigation, main content container, and mobile drawer so foreground content is always clearly separated from background elements.",
-      "reqIds": [
-        "REQ-17"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-the-app-accessible-without-requiring-internet-identity-login-by-updating-the-root-app-flow-to-always-render-the-main-dashboard-appshell-modules-and-never-block-on-the-loginpage",
-      "title": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
-      "reqIds": [
-        "REQ-18"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-disable-first-time-profile-setup-gating-for-open-access-so-anonymous-users-are-not-prompted-for-profilesetupmodal-when-using-the-app-without-login",
-      "title": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
-      "reqIds": [
-        "REQ-19"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-allow-role-and-admin-gated-ui-e-g-backup-module-to-function-in-open-mode-by-adjusting-frontend-role-fetching-so-it-can-resolve-a-role-even-when-the-current-identity-is-absent-anonymous-actor",
-      "title": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
-      "reqIds": [
-        "REQ-20"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
+      "id": "AR-1",
+      "summary": "Rebuild billing module as full ERP with persistent storage: save/list/edit estimates/invoices, products, and line items",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
       "id": "AR-2",
-      "summary": "Automatic inventory integration: purchases increase stock; billing/estimates decrease stock quantities",
+      "summary": "Line items support qty, price, and amount calculations; no taxes",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Terminology and print rules: use 'Estimate' instead of 'Invoice'; show estimate/invoice number in-app only (not on printed document)",
+      "summary": "Show previous/pending amount with red-flag indicator; auto-calculate pending from prior estimates/invoices and subtract any recorded payments",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-4",
-      "summary": "Billing/Estimate print layout tweaks: table-like appearance without borders; company name bold at top; wholesaler/retailer name on left; no borders",
+      "summary": "Add Bill To contact selection/management in billing module",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-5",
-      "summary": "Pricing automation on receiving materials: support fixed markup (e.g., cost ₹200 -> sell ₹220) and percentage margin pricing",
+      "summary": "Integrate billing qty with inventory stock levels",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-6",
-      "summary": "Automate pending/outstanding balance: track payments and compute pending amount and total outstanding automatically; display currency with ₹",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Rename Contacts terminology: replace 'customer'/'supplier' with 'wholesaler'/'retailer' across UI and data model as needed",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "Add product search + auto-fill (typeahead/autocomplete) wherever products are selected (Billing, Purchasing, Reports, etc.)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-12",
-      "summary": "Add Vyapar-like (legally distinct) UI/UX prototype: redesign layout, navigation, and key screens to follow Vyapar-style flows without copying proprietary visuals",
+      "summary": "Auto-fill item price from most recent purchase price in purchase module",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-13",
-      "summary": "Add sorting options to key lists/tables (Billing/Estimates, Purchases, Products, Reports) to complement search + autofill",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-14",
-      "summary": "Prevent data loss on redeploy: implement stable-memory persistence/migrations and/or export/import backup tooling for canister data",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-18",
-      "summary": "Prevent future data loss on redeploy/upgrade by implementing upgrade-safe stable-memory persistence for all stored Maps/vars in the Motoko backend (products, contacts, estimates, purchases, inventory, userProfiles, companyBranding, approvals/access control state where applicable, and priceOverrideRequests). Implement preupgrade/postupgrade hooks and add/adjust backend/migration.mo only if required to safely migrate existing state.",
+      "summary": "If backend estimate/billing types/APIs need to change to fully support product-linked line items and inventory adjustments, implement the minimal backend changes and add a conditional migration in backend/migration.mo to preserve existing persisted estimates across upgrades.",
       "reqIds": [
-        "REQ-8"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-19",
-      "summary": "Revert/adjust UI to match the previous (pre-v38) version since the current production version is worse; restore prior layout/flow or undo recent redesign changes",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-20",
-      "summary": "Rollback/redeploy production to Version 36 as requested by user (instead of current v39)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-21",
-      "summary": "UI navigation change: adopt top menu bar navigation (like the first design) so selecting a module shows its content clearly in the foreground; avoid sidebar behavior where background and selected content remain visible/overlap",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-22",
-      "summary": "Fix UI visual clarity: eliminate confusing background/overlap so selected module content is clearly foregrounded and navigation/content do not visually blend",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-23",
-      "summary": "Remove login/authentication requirements and make the app openly accessible (no login credentials / open access)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-27",
-      "summary": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
-      "reqIds": [
-        "REQ-21"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-28",
-      "summary": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
-      "reqIds": [
-        "REQ-22"
+        "REQ-7"
       ],
       "status": "pending"
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "Internal ERP System",
+  "projectName": "Rebuild ERP Billing module: estimates with product-linked line items, pending balance, inventory deduction, and purchase-price autofill",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

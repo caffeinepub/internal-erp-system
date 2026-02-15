@@ -138,10 +138,17 @@ export default function FinanceModule() {
     };
   });
 
-  // Product performance
+  // Product performance - prefer productId matching, fallback to description
   const productPerformance = products.map((product) => {
     const productEstimates = filteredEstimates.flatMap((e) =>
-      e.lineItems.filter((item) => item.description === product.name)
+      e.lineItems.filter((item) => {
+        // Prefer productId match if available
+        if (item.productId !== undefined && item.productId !== null) {
+          return item.productId === product.id;
+        }
+        // Fallback to description match
+        return item.description === product.name;
+      })
     );
     const salesCount = productEstimates.reduce((sum, item) => sum + item.quantity, 0);
     const revenue = productEstimates.reduce((sum, item) => sum + item.amount, 0);
@@ -427,23 +434,23 @@ export default function FinanceModule() {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <Label htmlFor="inventory-search">Product Search</Label>
+                <Label htmlFor="inventory-search">Search Products</Label>
                 <Input
                   id="inventory-search"
                   type="text"
                   placeholder="Search by product name or category..."
                   value={inventorySearchQuery}
                   onChange={(e) => setInventorySearchQuery(e.target.value)}
-                  className="mt-2"
                 />
               </div>
+
               <div ref={inventoryReportRef}>
                 <div className="report-container">
                   <div className="report-header">
                     <div className="report-title">Inventory Report</div>
                     <div className="report-subtitle">PN TRADING</div>
                     <div className="report-subtitle">
-                      Generated: {new Date().toLocaleDateString('en-IN')}
+                      Generated on {new Date().toLocaleDateString('en-IN')}
                     </div>
                   </div>
 
@@ -498,12 +505,12 @@ export default function FinanceModule() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    Sales Report by Contact
+                    Sales Report by Customer
                   </CardTitle>
-                  <CardDescription>Sales breakdown by Bill To contacts</CardDescription>
+                  <CardDescription>Sales performance by customer with pending amounts</CardDescription>
                 </div>
                 {isAdmin && (
-                  <Button onClick={() => handlePrintReport(salesReportRef, 'Sales Report')} size="sm">
+                  <Button onClick={() => handlePrintReport(salesReportRef, 'Sales Report by Customer')} size="sm">
                     <Printer className="w-4 h-4 mr-2" />
                     Print Report
                   </Button>
@@ -514,7 +521,7 @@ export default function FinanceModule() {
               <div ref={salesReportRef}>
                 <div className="report-container">
                   <div className="report-header">
-                    <div className="report-title">Sales Report by Contact</div>
+                    <div className="report-title">Sales Report by Customer</div>
                     <div className="report-subtitle">PN TRADING</div>
                     {(dateFilter.startDate || dateFilter.endDate) && (
                       <div className="report-subtitle">
@@ -526,12 +533,12 @@ export default function FinanceModule() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Contact Name</TableHead>
+                        <TableHead>Customer Name</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead className="text-right">Estimates</TableHead>
                         <TableHead className="text-right">Total Sold</TableHead>
                         <TableHead className="text-right">Received</TableHead>
                         <TableHead className="text-right">Pending</TableHead>
+                        <TableHead className="text-right">Estimates</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -539,12 +546,14 @@ export default function FinanceModule() {
                         <TableRow key={contact.name}>
                           <TableCell className="font-medium">{contact.name}</TableCell>
                           <TableCell className="capitalize">{contact.category}</TableCell>
-                          <TableCell className="text-right">{contact.estimateCount}</TableCell>
                           <TableCell className="text-right">₹{contact.totalSold.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">₹{contact.receivedAmount.toFixed(2)}</TableCell>
-                          <TableCell className={`text-right ${contact.pendingAmount > 0 ? 'text-red font-bold' : ''}`}>
+                          <TableCell className="text-right text-green-600">
+                            ₹{contact.receivedAmount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-red-600">
                             ₹{contact.pendingAmount.toFixed(2)}
                           </TableCell>
+                          <TableCell className="text-right">{contact.estimateCount}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -580,7 +589,7 @@ export default function FinanceModule() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5" />
-                    Product Performance
+                    Product Performance Report
                   </CardTitle>
                   <CardDescription>Sales performance by product</CardDescription>
                 </div>
@@ -594,16 +603,16 @@ export default function FinanceModule() {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <Label htmlFor="product-search">Product Search</Label>
+                <Label htmlFor="product-performance-search">Search Products</Label>
                 <Input
-                  id="product-search"
+                  id="product-performance-search"
                   type="text"
                   placeholder="Search by product name or category..."
                   value={productPerformanceSearchQuery}
                   onChange={(e) => setProductPerformanceSearchQuery(e.target.value)}
-                  className="mt-2"
                 />
               </div>
+
               <div ref={productReportRef}>
                 <div className="report-container">
                   <div className="report-header">
@@ -632,7 +641,7 @@ export default function FinanceModule() {
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>{product.category}</TableCell>
                           <TableCell className="text-right">{product.salesCount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">₹{product.revenue.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-bold">₹{product.revenue.toFixed(2)}</TableCell>
                           <TableCell className="text-right">{product.currentStock}</TableCell>
                         </TableRow>
                       ))}
@@ -666,17 +675,17 @@ export default function FinanceModule() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <TrendingDown className="w-5 h-5" />
-                    Profit & Loss Statement
+                    <FileText className="w-5 h-5" />
+                    Profit & Loss Report
                   </CardTitle>
-                  <CardDescription>Income vs expenses analysis</CardDescription>
+                  <CardDescription>Comprehensive profit and loss statement</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleGenerateProfitLoss} size="sm" variant="outline">
                     Generate Report
                   </Button>
                   {isAdmin && profitLossData && (
-                    <Button onClick={() => handlePrintReport(profitLossReportRef, 'Profit & Loss Statement')} size="sm">
+                    <Button onClick={() => handlePrintReport(profitLossReportRef, 'Profit & Loss Report')} size="sm">
                       <Printer className="w-4 h-4 mr-2" />
                       Print Report
                     </Button>
@@ -685,7 +694,12 @@ export default function FinanceModule() {
               </div>
             </CardHeader>
             <CardContent>
-              {profitLossData ? (
+              {!profitLossData ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Click "Generate Report" to create a profit & loss statement</p>
+                </div>
+              ) : (
                 <div ref={profitLossReportRef}>
                   <div className="report-container">
                     <div className="report-header">
@@ -715,11 +729,6 @@ export default function FinanceModule() {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">Click "Generate Report" to view Profit & Loss statement</p>
-                </div>
               )}
             </CardContent>
           </Card>
@@ -732,7 +741,7 @@ export default function FinanceModule() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
+                    <TrendingDown className="w-5 h-5" />
                     Transactions Summary
                   </CardTitle>
                   <CardDescription>All purchases and bills in one view</CardDescription>
@@ -746,31 +755,31 @@ export default function FinanceModule() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="trans-start">Start Date</Label>
+                  <Label htmlFor="transaction-start-date">Start Date</Label>
                   <Input
-                    id="trans-start"
+                    id="transaction-start-date"
                     type="date"
                     value={transactionFilter.startDate}
                     onChange={(e) => setTransactionFilter({ ...transactionFilter, startDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="trans-end">End Date</Label>
+                  <Label htmlFor="transaction-end-date">End Date</Label>
                   <Input
-                    id="trans-end"
+                    id="transaction-end-date"
                     type="date"
                     value={transactionFilter.endDate}
                     onChange={(e) => setTransactionFilter({ ...transactionFilter, endDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="trans-company">Company Name</Label>
+                  <Label htmlFor="transaction-company">Company/Item Name</Label>
                   <Input
-                    id="trans-company"
+                    id="transaction-company"
                     type="text"
-                    placeholder="Filter by company..."
+                    placeholder="Search..."
                     value={transactionFilter.companyName}
                     onChange={(e) => setTransactionFilter({ ...transactionFilter, companyName: e.target.value })}
                   />
@@ -808,23 +817,7 @@ export default function FinanceModule() {
                           <TableCell className="capitalize">{transaction.transactionType}</TableCell>
                           <TableCell>{transaction.itemOrCustomer}</TableCell>
                           <TableCell className="text-right">{Number(transaction.quantity)}</TableCell>
-                          <TableCell className="text-right">
-                            {transaction.transactionType === 'purchase' ? (
-                              `₹${(transaction.price * Number(transaction.quantity)).toFixed(2)}`
-                            ) : (
-                              <>
-                                <span>₹{transaction.price.toFixed(2)}</span>
-                                {(() => {
-                                  const estimate = estimates.find((e) => e.id === transaction.id);
-                                  return estimate ? (
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      (Received: ₹{estimate.paidAmount.toFixed(2)})
-                                    </span>
-                                  ) : null;
-                                })()}
-                              </>
-                            )}
-                          </TableCell>
+                          <TableCell className="text-right font-bold">₹{transaction.price.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -840,8 +833,14 @@ export default function FinanceModule() {
                       <span className="summary-value">₹{transactionTotals.totalBills.toFixed(2)}</span>
                     </div>
                     <div className="summary-row">
-                      <span className="summary-label">Total Received (Bills):</span>
+                      <span className="summary-label">Total Received Bills:</span>
                       <span className="summary-value text-green">₹{transactionTotals.totalReceivedBills.toFixed(2)}</span>
+                    </div>
+                    <div className="summary-row" style={{ borderTop: '2px solid #333', paddingTop: '16px', marginTop: '16px' }}>
+                      <span className="summary-label">Net (Received - Purchases):</span>
+                      <span className={`summary-value ${(transactionTotals.totalReceivedBills - transactionTotals.totalPurchases) >= 0 ? 'text-green' : 'text-red'}`}>
+                        ₹{(transactionTotals.totalReceivedBills - transactionTotals.totalPurchases).toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>

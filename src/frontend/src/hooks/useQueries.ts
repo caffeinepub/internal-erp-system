@@ -346,18 +346,38 @@ export function useCreateEstimate() {
       netAmount: number;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createEstimate(
+      const newId = await actor.createEstimate(
         data.customerName,
         data.customerAddress,
         data.lineItems,
         data.totalAmount,
         data.netAmount
       );
+
+      // Optimistically update cache with new estimate
+      const newEstimate: Estimate = {
+        id: newId,
+        customerName: data.customerName,
+        customerAddress: data.customerAddress,
+        lineItems: data.lineItems,
+        totalAmount: data.totalAmount,
+        netAmount: data.netAmount,
+        createdAt: BigInt(Date.now() * 1000000),
+        isPaid: false,
+        paidAmount: 0,
+        pendingAmount: data.totalAmount,
+        paymentReceivedTimestamp: undefined,
+      };
+
+      queryClient.setQueryData<Estimate[]>(['estimates'], (old) => {
+        return old ? [...old, newEstimate] : [newEstimate];
+      });
+
+      return newId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Estimate created successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to create estimate: ${error.message}`);
@@ -379,9 +399,11 @@ export function useUpdateEstimate() {
       netAmount: number;
       isPaid: boolean;
       pendingAmount: number;
+      paidAmount: number;
+      paymentReceivedTimestamp: Time | null | undefined;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateEstimate(
+      await actor.updateEstimate(
         data.id,
         data.customerName,
         data.customerAddress,
@@ -390,14 +412,34 @@ export function useUpdateEstimate() {
         data.netAmount,
         data.isPaid,
         data.pendingAmount,
-        0,
-        null
+        data.paidAmount,
+        data.paymentReceivedTimestamp ?? null
       );
+
+      // Optimistically update cache - convert null to undefined for paymentReceivedTimestamp
+      queryClient.setQueryData<Estimate[]>(['estimates'], (old) => {
+        if (!old) return old;
+        return old.map((est) =>
+          est.id === data.id
+            ? {
+                ...est,
+                customerName: data.customerName,
+                customerAddress: data.customerAddress,
+                lineItems: data.lineItems,
+                totalAmount: data.totalAmount,
+                netAmount: data.netAmount,
+                isPaid: data.isPaid,
+                pendingAmount: data.pendingAmount,
+                paidAmount: data.paidAmount,
+                paymentReceivedTimestamp: data.paymentReceivedTimestamp ?? undefined,
+              }
+            : est
+        );
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Estimate updated successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to update estimate: ${error.message}`);
@@ -412,11 +454,29 @@ export function useRecordEstimatePayment() {
   return useMutation({
     mutationFn: async (data: { estimateId: bigint; paidAmount: number }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.recordEstimatePayment(data.estimateId, data.paidAmount);
+      await actor.recordEstimatePayment(data.estimateId, data.paidAmount);
+
+      // Optimistically update cache
+      queryClient.setQueryData<Estimate[]>(['estimates'], (old) => {
+        if (!old) return old;
+        return old.map((est) => {
+          if (est.id === data.estimateId) {
+            const isPaid = data.paidAmount >= est.totalAmount;
+            const pendingAmount = Math.max(est.totalAmount - data.paidAmount, 0);
+            return {
+              ...est,
+              paidAmount: data.paidAmount,
+              pendingAmount,
+              isPaid,
+              paymentReceivedTimestamp: data.paidAmount > 0 ? BigInt(Date.now() * 1000000) : undefined,
+            };
+          }
+          return est;
+        });
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
-      toast.success('Payment recorded successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to record payment: ${error.message}`);
@@ -575,29 +635,7 @@ export function useSetCompanyBranding() {
   });
 }
 
-// Finance Queries
-export function useGenerateProfitAndLossReport() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.generateProfitAndLossReport(data.startTime, data.endTime);
-    },
-  });
-}
-
-export function useGetReportTotals() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getReportTotals(data.startTime, data.endTime);
-    },
-  });
-}
-
+// Transaction Queries
 export function useGetAllTransactions() {
   const { actor, isFetching } = useActor();
 
@@ -618,6 +656,29 @@ export function useSearchTransactions() {
     mutationFn: async (search: string) => {
       if (!actor) throw new Error('Actor not available');
       return actor.searchTransactions(search);
+    },
+  });
+}
+
+// Report Queries
+export function useGenerateProfitAndLossReport() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.generateProfitAndLossReport(data.startTime, data.endTime);
+    },
+  });
+}
+
+export function useGetReportTotals() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (data: { startTime: Time; endTime: Time }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getReportTotals(data.startTime, data.endTime);
     },
   });
 }

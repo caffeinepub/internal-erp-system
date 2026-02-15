@@ -140,11 +140,20 @@ export default function PurchaseModule() {
 
   const handleProductSelect = (productId: string, product: any) => {
     if (product) {
-      setCurrentLineItem({
-        ...currentLineItem,
-        productId,
-        productName: product.name,
-        costPrice: product.price.toString(),
+      // Use functional state update to avoid stale state issues
+      setCurrentLineItem((prev) => {
+        const costPrice = product.price.toString();
+        const sellingPrice = product.price.toString(); // Default selling price = cost price
+        const profitPercent = calculateProfitPercentage(product.price, product.price);
+        
+        return {
+          ...prev,
+          productId,
+          productName: product.name,
+          costPrice,
+          sellingPrice,
+          profitPercentage: profitPercent.toFixed(2),
+        };
       });
     }
   };
@@ -524,95 +533,96 @@ export default function PurchaseModule() {
               </div>
 
               {/* Add Line Item Form */}
-              <div className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-2 space-y-2">
-                  <Label>Product</Label>
-                  <ProductAutocomplete
-                    products={products}
-                    value={currentLineItem.productId}
-                    onSelect={handleProductSelect}
-                    placeholder="Search..."
-                  />
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <div className="grid grid-cols-6 gap-3">
+                  <div className="col-span-2 space-y-2">
+                    <Label>Product *</Label>
+                    <ProductAutocomplete
+                      products={products}
+                      value={currentLineItem.productId}
+                      onSelect={handleProductSelect}
+                      placeholder="Search product..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      step="1"
+                      value={currentLineItem.quantity}
+                      onChange={(e) => setCurrentLineItem({ ...currentLineItem, quantity: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="costPrice">Cost Price *</Label>
+                    <Input
+                      id="costPrice"
+                      type="number"
+                      step="0.01"
+                      value={currentLineItem.costPrice}
+                      onChange={(e) => handleCostPriceChange(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sellingPrice">Selling Price *</Label>
+                    <Input
+                      id="sellingPrice"
+                      type="number"
+                      step="0.01"
+                      value={currentLineItem.sellingPrice}
+                      onChange={(e) => handleSellingPriceChange(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profitPercentage">Profit %</Label>
+                    <Input
+                      id="profitPercentage"
+                      type="number"
+                      step="0.01"
+                      value={currentLineItem.profitPercentage}
+                      onChange={(e) => handleProfitPercentageChange(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={currentLineItem.quantity}
-                    onChange={(e) => setCurrentLineItem({ ...currentLineItem, quantity: e.target.value })}
-                    placeholder="Qty"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="cost-price">Cost Price</Label>
-                  <Input
-                    id="cost-price"
-                    type="number"
-                    step="0.01"
-                    value={currentLineItem.costPrice}
-                    onChange={(e) => handleCostPriceChange(e.target.value)}
-                    placeholder="Cost"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="selling-price">Selling Price</Label>
-                  <Input
-                    id="selling-price"
-                    type="number"
-                    step="0.01"
-                    value={currentLineItem.sellingPrice}
-                    onChange={(e) => handleSellingPriceChange(e.target.value)}
-                    placeholder="Selling"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="profit">Profit %</Label>
-                  <Input
-                    id="profit"
-                    type="number"
-                    step="0.01"
-                    value={currentLineItem.profitPercentage}
-                    onChange={(e) => handleProfitPercentageChange(e.target.value)}
-                    placeholder="Profit"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Button onClick={addLineItem} size="sm" className="w-full" disabled={formData.lineItems.length >= 100}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
+                <Button onClick={addLineItem} className="mt-3" size="sm" disabled={formData.lineItems.length >= 100}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
               </div>
 
               {/* Line Items Table */}
               {formData.lineItems.length > 0 && (
-                <div className="rounded-md border">
+                <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Cost</TableHead>
-                        <TableHead className="text-right">Selling</TableHead>
-                        <TableHead className="text-right">Profit %</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Cost</TableHead>
+                        <TableHead>Selling</TableHead>
+                        <TableHead>Profit %</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {formData.lineItems.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell>{item.productName}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">₹{parseFloat(item.costPrice).toFixed(2)}</TableCell>
-                          <TableCell className="text-right">₹{parseFloat(item.sellingPrice).toFixed(2)}</TableCell>
-                          <TableCell className={`text-right ${parseFloat(item.profitPercentage) < 0 ? 'text-destructive font-medium' : ''}`}>
+                          <TableCell className="font-medium">{item.productName}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>₹{parseFloat(item.costPrice).toFixed(2)}</TableCell>
+                          <TableCell>₹{parseFloat(item.sellingPrice).toFixed(2)}</TableCell>
+                          <TableCell className={parseFloat(item.profitPercentage) < 0 ? 'text-destructive' : ''}>
                             {parseFloat(item.profitPercentage).toFixed(2)}%
                           </TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => removeLineItem(index)}
                             >
                               <X className="w-4 h-4" />
@@ -632,7 +642,7 @@ export default function PurchaseModule() {
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes"
+                placeholder="Additional notes..."
                 rows={3}
               />
             </div>
@@ -685,12 +695,17 @@ export default function PurchaseModule() {
 
             {formData.lineItems.length > 0 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-5 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-quantity">Quantity</Label>
+                    <Label>Product</Label>
+                    <Input value={formData.lineItems[0].productName} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-quantity">Quantity *</Label>
                     <Input
                       id="edit-quantity"
                       type="number"
+                      step="1"
                       value={formData.lineItems[0].quantity}
                       onChange={(e) => {
                         const updated = [...formData.lineItems];
@@ -700,9 +715,9 @@ export default function PurchaseModule() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-cost">Cost Price</Label>
+                    <Label htmlFor="edit-costPrice">Cost Price *</Label>
                     <Input
-                      id="edit-cost"
+                      id="edit-costPrice"
                       type="number"
                       step="0.01"
                       value={formData.lineItems[0].costPrice}
@@ -718,12 +733,10 @@ export default function PurchaseModule() {
                       }}
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-selling">Selling Price</Label>
+                    <Label htmlFor="edit-sellingPrice">Selling Price *</Label>
                     <Input
-                      id="edit-selling"
+                      id="edit-sellingPrice"
                       type="number"
                       step="0.01"
                       value={formData.lineItems[0].sellingPrice}
@@ -740,9 +753,9 @@ export default function PurchaseModule() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-profit">Profit %</Label>
+                    <Label htmlFor="edit-profitPercentage">Profit %</Label>
                     <Input
-                      id="edit-profit"
+                      id="edit-profitPercentage"
                       type="number"
                       step="0.01"
                       value={formData.lineItems[0].profitPercentage}
@@ -768,7 +781,7 @@ export default function PurchaseModule() {
                 id="edit-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes"
+                placeholder="Additional notes..."
                 rows={3}
               />
             </div>
@@ -795,9 +808,7 @@ export default function PurchaseModule() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeletePurchase} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDeletePurchase}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -807,10 +818,10 @@ export default function PurchaseModule() {
         <PriceOverrideDialog
           isOpen={isOverrideDialogOpen}
           onClose={handleRejectOverride}
-          onApprove={handleApproveOverride}
           costPrice={overrideItem.costPrice}
           sellingPrice={overrideItem.sellingPrice}
           itemName={overrideItem.itemName}
+          onApprove={handleApproveOverride}
         />
       )}
     </div>

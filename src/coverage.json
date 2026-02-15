@@ -1,64 +1,96 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T16:24:22.269Z",
+  "generatedAt": "2026-02-15T18:20:41.289Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 3,
+    "total": 7,
+    "implemented": 6,
     "items": [
       {
-        "id": "REQ-18",
-        "summary": "Make the app accessible without requiring Internet Identity login by updating the root app flow to always render the main Dashboard (AppShell + modules) and never block on the LoginPage.",
+        "id": "REQ-1",
+        "summary": "Fix the estimate product selection/add flow so selecting a product reliably populates the draft line item fields (productId, description, and rate) and the user can add the line item without manual re-entry or losing the selected product.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/components/ProductAutocomplete.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/components/ProductAutocomplete.tsx"
         ]
       },
       {
-        "id": "REQ-19",
-        "summary": "Disable first-time profile setup gating for open access so anonymous users are not prompted for ProfileSetupModal when using the app without login.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/ProfileSetupModal.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/ProfileSetupModal.tsx"
-        ]
-      },
-      {
-        "id": "REQ-20",
-        "summary": "Allow role and admin-gated UI (e.g., Backup module) to function in open mode by adjusting frontend role fetching so it can resolve a role even when the current identity is absent (anonymous actor).",
+        "id": "REQ-2",
+        "summary": "Ensure the billing estimate editor supports full ERP saving: create and edit estimates that persist to the backend and appear in the Billing list with correct totals and status.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/Dashboard.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx"
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/components/BillingModule.tsx"
         ],
         "matchedFiles": [
           "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/Dashboard.tsx",
-          "frontend/src/components/PrimaryNavigation.tsx"
+          "frontend/src/pages/EstimateEditorPage.tsx"
         ]
       },
       {
-        "id": "REQ-21",
-        "summary": "Add an explicit backend 'open access' behavior that bypasses all authorization/approval checks so anonymous callers can read and mutate all domain data (products, inventory, contacts, estimates, purchases, backups, branding, and related utilities) without trapping with \"Unauthorized\" errors.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-3",
+        "summary": "Add/ensure Bill To customer selection in the estimate editor using the existing Bill To contacts list, and display the customer’s previous outstanding/pending amount with a clear red-flag visual when pending > 0.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx"
+        ]
       },
       {
-        "id": "REQ-22",
-        "summary": "In open access mode, ensure the backend role/approval APIs report permissive values so the existing frontend role gating works without login: treat the anonymous caller as approved and return an admin-equivalent role for getCallerUserRole/isCallerAdmin.",
+        "id": "REQ-4",
+        "summary": "Ensure inventory stock is enforced and updated based on product-linked line items: validate available stock when adding/saving line items, decrement stock on estimate creation, and adjust stock correctly when editing an estimate (restore original quantities then apply updated quantities).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Auto-fill the estimate line item rate/price from the most recent purchase price recorded in the Purchase module for the selected product; if no purchase history exists for that product, fall back to the product’s default price.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/utils/purchasePrice.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/EstimateEditorPage.tsx",
+          "frontend/src/utils/purchasePrice.ts"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Record payments against estimates and ensure pending amount is automatically recalculated and displayed consistently across the Billing list and customer pending calculations.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/BillingModule.tsx",
+          "frontend/src/pages/EstimateEditorPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/EstimateEditorPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "If backend estimate/billing types/APIs need to change to fully support product-linked line items and inventory adjustments, implement the minimal backend changes and add a conditional migration in backend/migration.mo to preserve existing persisted estimates across upgrades.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
@@ -71,17 +103,14 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/AppShell.tsx",
-    "frontend/src/components/MobileNavDrawer.tsx",
-    "frontend/src/components/PrimaryNavigation.tsx",
-    "frontend/src/components/ProfileSetupModal.tsx",
+    "frontend/src/components/ProductAutocomplete.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/Dashboard.tsx",
+    "frontend/src/pages/EstimateEditorPage.tsx",
+    "frontend/src/utils/purchasePrice.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

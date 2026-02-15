@@ -59,10 +59,11 @@ export default function EstimatePrintView({
     const printContent = format === 'standard' ? standardPrintRef.current : thermalPrintRef.current;
     if (!printContent) return;
 
-    const printWindow = window.open('', '', format === 'thermal' ? 'width=300,height=600' : 'width=800,height=600');
-    if (!printWindow) return;
-
     const styles = format === 'thermal' ? getPrintStyles(settings) : getStandardStyles();
+
+    // Open full-screen window
+    const printWindow = window.open('', '', 'width=' + screen.availWidth + ',height=' + screen.availHeight);
+    if (!printWindow) return;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -79,9 +80,15 @@ export default function EstimatePrintView({
 
     printWindow.document.close();
     printWindow.focus();
+    
+    // Wait for content to load, then print and close
     setTimeout(() => {
       printWindow.print();
-      printWindow.close();
+      
+      // Close window after print dialog is handled
+      setTimeout(() => {
+        printWindow.close();
+      }, 500);
     }, 250);
   };
 
@@ -106,17 +113,11 @@ export default function EstimatePrintView({
         minute: '2-digit',
       });
 
-      // Get unique line items
-      const uniqueLineItems = estimate.lineItems.reduce((acc, item) => {
-        const existing = acc.find(i => i.description === item.description);
-        if (!existing) {
-          acc.push(item);
-        } else {
-          existing.quantity += item.quantity;
-          existing.amount += item.amount;
-        }
-        return acc;
-      }, [] as typeof estimate.lineItems);
+      // Generate correct estimate number from estimate.id
+      const estimateNumber = `EST-${estimate.id.toString().padStart(4, '0')}`;
+
+      // Use ALL line items without deduplication
+      const allLineItems = estimate.lineItems;
 
       const encoderSettings = getEncoderSettings(settings);
       const encodingMetadata = getEncodingMetadata(encoderSettings);
@@ -132,9 +133,10 @@ export default function EstimatePrintView({
         },
         receiptSummary: {
           companyName,
+          estimateNumber,
           estimateDate,
           customerName: estimate.customerName,
-          lineItemCount: uniqueLineItems.length,
+          lineItemCount: allLineItems.length,
           totalAmount: estimate.netAmount,
           paidAmount: estimate.paidAmount,
           pendingAmount: estimate.pendingAmount,
@@ -147,10 +149,11 @@ export default function EstimatePrintView({
         companyAddress,
         companyPhone,
         estimateDate,
+        estimateNumber,
         customerName: estimate.customerName,
         customerAddress: estimate.customerAddress,
         previousPending: previousPendingAmount > 0 ? previousPendingAmount : undefined,
-        lineItems: uniqueLineItems,
+        lineItems: allLineItems,
         totalAmount: estimate.netAmount,
         paidAmount: estimate.paidAmount,
         pendingAmount: estimate.pendingAmount,
@@ -361,18 +364,8 @@ export default function EstimatePrintView({
   const companyAddress = companyBranding?.address || '121 Gopi Krishna Vihar Colony Ahmedabad';
   const companyPhone = '9033793722';
 
-  // Get unique line items to avoid duplicates
-  const uniqueLineItems = estimate.lineItems.reduce((acc, item) => {
-    const existing = acc.find(i => i.description === item.description);
-    if (!existing) {
-      acc.push(item);
-    } else {
-      // If duplicate found, combine quantities and amounts
-      existing.quantity += item.quantity;
-      existing.amount += item.amount;
-    }
-    return acc;
-  }, [] as typeof estimate.lineItems);
+  // Use ALL line items without deduplication for preview
+  const allLineItems = estimate.lineItems;
 
   const previewStyles = getPreviewStyles(settings);
   const bluetoothLimitations = getBluetoothLimitations();
@@ -540,12 +533,12 @@ export default function EstimatePrintView({
                                 Status: {bluetoothPrinter.isConnected ? (
                                   <span className="text-green-600">Connected</span>
                                 ) : (
-                                  <span className="text-muted-foreground">Disconnected</span>
+                                  <span className="text-muted-foreground">Not Connected</span>
                                 )}
                               </p>
                               {bluetoothPrinter.deviceName && (
                                 <p className="text-xs text-muted-foreground">
-                                  Printer: {bluetoothPrinter.deviceName}
+                                  Device: {bluetoothPrinter.deviceName}
                                 </p>
                               )}
                             </div>
@@ -560,12 +553,12 @@ export default function EstimatePrintView({
                                 </Button>
                               ) : (
                                 <Button
-                                  variant="outline"
+                                  variant="default"
                                   size="sm"
                                   onClick={bluetoothPrinter.connect}
                                   disabled={bluetoothPrinter.isConnecting}
                                 >
-                                  {bluetoothPrinter.isConnecting ? 'Connecting...' : 'Connect'}
+                                  {bluetoothPrinter.isConnecting ? 'Connecting...' : 'Connect Printer'}
                                 </Button>
                               )}
                             </div>
@@ -578,44 +571,24 @@ export default function EstimatePrintView({
                             </Alert>
                           )}
 
-                          <Separator />
-
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <Info className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                              <div className="text-xs text-muted-foreground space-y-1">
-                                <p className="font-medium">Requirements:</p>
-                                <ul className="list-disc list-inside space-y-0.5 ml-2">
-                                  <li>Bluetooth must be enabled on your device</li>
-                                  <li>Printer must be powered on and in pairing mode</li>
-                                  <li>Page must be served over HTTPS (secure connection)</li>
-                                  <li>Compatible with most ESC/POS thermal printers</li>
-                                </ul>
-                              </div>
-                            </div>
-                            
-                            {/* View/Print Requirements Button */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowRequirements(true)}
-                              className="w-full mt-2"
-                            >
-                              <FileText className="w-4 h-4 mr-2" />
-                              View & Print Requirements
-                            </Button>
-                          </div>
-
-                          {/* Bluetooth Limitations */}
                           <Alert>
                             <Info className="h-4 w-4" />
-                            <AlertDescription>
-                              <p className="font-medium mb-1 text-xs">Quick Preview Limitations for Bluetooth:</p>
-                              <ul className="list-disc list-inside space-y-0.5 text-xs">
-                                {bluetoothLimitations.map((limitation, idx) => (
-                                  <li key={idx}>{limitation}</li>
+                            <AlertDescription className="text-xs space-y-1">
+                              <p className="font-semibold">Bluetooth Printing Limitations:</p>
+                              <ul className="list-disc list-inside space-y-0.5 ml-2">
+                                {bluetoothLimitations.map((limitation, index) => (
+                                  <li key={index}>{limitation}</li>
                                 ))}
                               </ul>
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-xs mt-2"
+                                onClick={() => setShowRequirements(true)}
+                              >
+                                <FileText className="w-3 h-3 mr-1" />
+                                View Printer Requirements
+                              </Button>
                             </AlertDescription>
                           </Alert>
                         </>
@@ -625,202 +598,218 @@ export default function EstimatePrintView({
                 </div>
               )}
 
-              {/* Print Button */}
-              <div className="flex justify-end">
-                {printMethod === 'bluetooth' && printFormat === 'thermal' ? (
-                  <Button
-                    onClick={handleBluetoothPrint}
-                    disabled={!bluetoothPrinter?.isConnected || bluetoothPrinter?.isPrinting}
-                  >
-                    <Bluetooth className="w-4 h-4 mr-2" />
-                    {bluetoothPrinter?.isPrinting ? 'Printing...' : 'Print via Bluetooth'}
-                  </Button>
-                ) : (
-                  <Button onClick={() => handleBrowserPrint(printFormat)}>
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print {printFormat === 'thermal' ? 'Receipt' : 'Estimate'}
-                  </Button>
-                )}
-              </div>
-            </div>
+              <Separator />
 
-            <TabsContent value="thermal" className="mt-4">
-              <div className="flex justify-center">
-                <div 
-                  ref={thermalPrintRef} 
-                  className="thermal-container bg-white border rounded-lg" 
-                  style={{
-                    ...previewStyles,
-                    fontFamily: 'Courier New, monospace',
-                  }}
-                >
+              {/* Preview Content */}
+              <TabsContent value="thermal" className="mt-0">
+                <div className="flex justify-center py-4">
+                  <div
+                    ref={thermalPrintRef}
+                    className="thermal-receipt-preview border-2 border-dashed border-muted-foreground/30 bg-white text-black"
+                    style={previewStyles}
+                  >
+                    {/* Company Header */}
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '1.4em', fontWeight: 'bold', marginBottom: '4px' }}>
+                        {companyName}
+                      </div>
+                      <div style={{ fontSize: '0.85em', lineHeight: '1.3' }}>
+                        {companyAddress}
+                      </div>
+                      <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginTop: '4px' }}>
+                        Ph.No.: {companyPhone}
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+                    {/* Customer Info */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>Bill To:</div>
+                      <div>{estimate.customerName}</div>
+                      {estimate.customerAddress && (
+                        <div style={{ fontSize: '0.9em' }}>{estimate.customerAddress}</div>
+                      )}
+                      {previousPendingAmount > 0 && (
+                        <div style={{ marginTop: '4px' }}>
+                          Previous Pending: Rs{previousPendingAmount.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+                    {/* Date & Estimate Number */}
+                    <div style={{ textAlign: 'center', fontSize: '0.9em', marginBottom: '8px' }}>
+                      <div>
+                        Date: {new Date(Number(estimate.createdAt) / 1000000).toLocaleString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                      <div style={{ fontWeight: 'bold', marginTop: '2px' }}>
+                        Invoice No: EST-{estimate.id.toString().padStart(4, '0')}
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: '2px solid #000', margin: '8px 0' }} />
+
+                    {/* Line Items - Two-line format */}
+                    <div style={{ marginBottom: '8px' }}>
+                      {allLineItems.map((item, index) => (
+                        <div key={index} style={{ marginBottom: `${settings.itemSpacing}px` }}>
+                          {/* Line 1: Product Name */}
+                          <div style={{ fontWeight: 'bold' }}>
+                            {index + 1}. {item.description}
+                          </div>
+                          {/* Line 2: Qty x Rate = Amount */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>{item.quantity} x Rs{item.rate.toFixed(2)}</span>
+                            <span>Rs{item.amount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ borderTop: '2px solid #000', margin: '8px 0' }} />
+
+                    {/* Totals */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Sub Total:</span>
+                        <span>Rs{estimate.netAmount.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <span>Current Bal.:</span>
+                        <span>Rs{estimate.netAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                      <span>Total Pending:</span>
+                      <span>Rs{(previousPendingAmount + estimate.pendingAmount).toFixed(2)}</span>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Thank You</div>
+                      <div style={{ fontSize: '0.9em' }}>Visit Again</div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="standard" className="mt-0">
+                <div ref={standardPrintRef} className="estimate-container">
+                  {/* Standard A4 Format */}
                   <div className="header">
                     <div className="company-name">{companyName}</div>
                     <div className="company-address">{companyAddress}</div>
-                    <div className="company-phone">Ph: {companyPhone}</div>
+                    <div className="company-phone">Phone: {companyPhone}</div>
                   </div>
 
                   <div className="estimate-date">
-                    {new Date(Number(estimate.createdAt) / 1000000).toLocaleString('en-IN', {
+                    Date: {new Date(Number(estimate.createdAt) / 1000000).toLocaleDateString('en-IN', {
                       year: 'numeric',
-                      month: 'short',
+                      month: 'long',
                       day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
                     })}
                   </div>
 
                   <div className="customer-info">
                     <div className="customer-label">Bill To:</div>
                     <div className="customer-name">{estimate.customerName}</div>
-                    <div className="customer-address">{estimate.customerAddress}</div>
+                    {estimate.customerAddress && (
+                      <div className="customer-address">{estimate.customerAddress}</div>
+                    )}
                   </div>
 
                   {previousPendingAmount > 0 && (
                     <div className="pending-info">
-                      <div className="pending-label">Prev. Pending:</div>
-                      <div className="pending-amount">₹ {previousPendingAmount.toFixed(2)}</div>
+                      <div className="pending-label">Previous Pending Amount</div>
+                      <div className="pending-amount">₹{previousPendingAmount.toFixed(2)}</div>
                     </div>
                   )}
 
-                  <div className="items-header">
-                    <span>Item</span>
-                    <span>Amount</span>
-                  </div>
-
-                  {uniqueLineItems.map((item, index) => (
-                    <div key={index} className="item-row" style={{ paddingTop: `${settings.itemSpacing}px`, paddingBottom: `${settings.itemSpacing}px` }}>
-                      <div className="item-name">{item.description}</div>
-                      <div className="item-details">
-                        <span>{item.quantity} x ₹ {item.rate.toFixed(2)}</span>
-                        <span>₹ {item.amount.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allLineItems.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.description}</td>
+                          <td>{item.quantity}</td>
+                          <td>₹{item.rate.toFixed(2)}</td>
+                          <td>₹{item.amount.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
                   <div className="totals">
                     <div className="total-row grand-total">
-                      <span>TOTAL:</span>
-                      <span>₹ {estimate.netAmount.toFixed(2)}</span>
+                      <span>Total Amount:</span>
+                      <span>₹{estimate.netAmount.toFixed(2)}</span>
                     </div>
                     <div className="total-row paid-amount">
-                      <span>Paid:</span>
-                      <span>₹ {estimate.paidAmount.toFixed(2)}</span>
+                      <span>Paid Amount:</span>
+                      <span>₹{estimate.paidAmount.toFixed(2)}</span>
                     </div>
                     <div className="total-row pending-amount">
-                      <span>Pending:</span>
-                      <span>₹ {estimate.pendingAmount.toFixed(2)}</span>
+                      <span>Pending Amount:</span>
+                      <span>₹{estimate.pendingAmount.toFixed(2)}</span>
                     </div>
                     {previousPendingAmount > 0 && (
-                      <>
-                        <div className="total-row">
-                          <span>Prev. Pending:</span>
-                          <span>₹ {previousPendingAmount.toFixed(2)}</span>
-                        </div>
-                        <div className="total-row total-pending">
-                          <span>Total Pending:</span>
-                          <span>₹ {(estimate.pendingAmount + previousPendingAmount).toFixed(2)}</span>
-                        </div>
-                      </>
+                      <div className="total-row total-pending">
+                        <span>Total Pending (Including Previous):</span>
+                        <span>₹{(previousPendingAmount + estimate.pendingAmount).toFixed(2)}</span>
+                      </div>
                     )}
                   </div>
 
                   <div className="footer">
-                    <div className="footer-thank-you">Thank You!</div>
+                    <div className="footer-thank-you">Thank You for Your Business!</div>
+                    <div>For any queries, please contact us at {companyPhone}</div>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="standard" className="mt-4">
-              <div ref={standardPrintRef} className="estimate-container p-8 bg-white border rounded-lg">
-                <div className="header">
-                  <div className="company-name">{companyName}</div>
-                  <div className="company-address">{companyAddress}</div>
-                  <div className="company-phone">Phone: {companyPhone}</div>
-                </div>
-
-                <div className="estimate-date">
-                  Date: {new Date(Number(estimate.createdAt) / 1000000).toLocaleString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-
-                <div className="customer-info">
-                  <div className="customer-label">Bill To:</div>
-                  <div className="customer-name">{estimate.customerName}</div>
-                  <div className="customer-address">{estimate.customerAddress}</div>
-                </div>
-
-                {previousPendingAmount > 0 && (
-                  <div className="pending-info">
-                    <div className="pending-label">Previous Pending Amount:</div>
-                    <div className="pending-amount">₹ {previousPendingAmount.toFixed(2)}</div>
-                  </div>
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+                {printFormat === 'thermal' && printMethod === 'bluetooth' && bluetoothPrinter ? (
+                  <Button
+                    onClick={handleBluetoothPrint}
+                    disabled={!bluetoothPrinter.isConnected || bluetoothPrinter.isPrinting}
+                  >
+                    <Bluetooth className="w-4 h-4 mr-2" />
+                    {bluetoothPrinter.isPrinting ? 'Printing...' : 'Print via Bluetooth'}
+                  </Button>
+                ) : (
+                  <Button onClick={() => handleBrowserPrint(printFormat)}>
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print
+                  </Button>
                 )}
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th>Quantity</th>
-                      <th>Rate</th>
-                      <th>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {uniqueLineItems.map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.description}</td>
-                        <td>{item.quantity}</td>
-                        <td>₹ {item.rate.toFixed(2)}</td>
-                        <td>₹ {item.amount.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="totals">
-                  <div className="total-row grand-total">
-                    <span>Total Amount:</span>
-                    <span>₹ {estimate.netAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="total-row paid-amount">
-                    <span>Paid Amount:</span>
-                    <span>₹ {estimate.paidAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="total-row pending-amount">
-                    <span>Pending Amount:</span>
-                    <span>₹ {estimate.pendingAmount.toFixed(2)}</span>
-                  </div>
-                  {previousPendingAmount > 0 && (
-                    <>
-                      <div className="total-row">
-                        <span>Previous Pending:</span>
-                        <span>₹ {previousPendingAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="total-row total-pending">
-                        <span>Total Pending:</span>
-                        <span>₹ {(estimate.pendingAmount + previousPendingAmount).toFixed(2)}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="footer">
-                  <div className="footer-thank-you">Thank you for your business!</div>
-                </div>
               </div>
-            </TabsContent>
+            </div>
           </Tabs>
         </DialogContent>
       </Dialog>
 
-      {/* Bluetooth Printer Requirements Dialog */}
       <BluetoothPrinterRequirementsDialog
         isOpen={showRequirements}
         onClose={() => setShowRequirements(false)}

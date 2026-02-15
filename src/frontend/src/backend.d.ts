@@ -104,6 +104,7 @@ export interface Purchase {
 export interface EstimateItem {
     rate: number;
     description: string;
+    productId?: bigint;
     quantity: number;
     amount: number;
 }
@@ -150,6 +151,7 @@ export interface backendInterface {
     createEstimate(customerName: string, customerAddress: string, lineItems: Array<EstimateItem>, totalAmount: number, netAmount: number): Promise<bigint>;
     createPurchase(item: string, quantity: bigint, costPrice: number, sellingPrice: number, purchaser: string, notes: string, hasOverride: boolean): Promise<bigint>;
     deleteContact(contactId: bigint): Promise<void>;
+    deleteEstimate(estimateId: bigint): Promise<void>;
     deleteProduct(productId: bigint): Promise<void>;
     deletePurchase(purchaseId: bigint): Promise<void>;
     generateProfitAndLossReport(startTime: Time, endTime: Time): Promise<ProfitAndLoss>;
@@ -182,7 +184,7 @@ export interface backendInterface {
     setCompanyBranding(name: string, address: string, logo: ExternalBlob | null): Promise<void>;
     toggleOpenAccess(value: boolean): Promise<void>;
     updateContact(contactId: bigint, name: string, contactInfo: string, contactType: Variant_purchaser_billTo, contactCategory: Variant_wholesaler_retailer): Promise<void>;
-    updateEstimate(estimateId: bigint, customerName: string, customerAddress: string, lineItems: Array<EstimateItem>, totalAmount: number, netAmount: number, isPaid: boolean, pendingAmount: number, paidAmount: number, paymentReceivedTimestamp: Time | null): Promise<void>;
+    updateEstimate(estimateId: bigint, customerName: string, customerAddress: string, lineItems: Array<EstimateItem>, totalAmount: number, netAmount: number, isPaid: boolean, _pendingAmount: number, _paidAmount: number, _paymentReceivedTimestamp: Time | null): Promise<void>;
     updateProduct(productId: bigint, name: string, category: string, price: number): Promise<void>;
     updatePurchase(purchaseId: bigint, item: string, quantity: bigint, costPrice: number, sellingPrice: number, purchaser: string, notes: string, hasOverride: boolean): Promise<void>;
     updateStock(productId: bigint, quantity: bigint): Promise<void>;

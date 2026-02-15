@@ -44,14 +44,14 @@ actor {
   };
 
   public shared ({ caller }) func setApproval(user : Principal, status : UserApproval.ApprovalStatus) : async () {
-    if (not (openAccess or AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can set approval status");
     };
     UserApproval.setApproval(approvalState, user, status);
   };
 
   public query ({ caller }) func listApprovals() : async [UserApproval.UserApprovalInfo] {
-    if (not (openAccess or AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can list approvals");
     };
     UserApproval.listApprovals(approvalState);
@@ -97,6 +97,7 @@ actor {
   };
 
   public type EstimateItem = {
+    productId : ?Nat;
     description : Text;
     quantity : Float;
     rate : Float;
@@ -582,7 +583,10 @@ actor {
     netAmount : Float,
   ) : async Nat {
     requireUser(caller);
+    validateStockAvailability(lineItems, null);
     let estimateId = getNextEstimateId();
+
+    updateEstimateInventory(lineItems, false);
     let estimate : Estimate = {
       id = estimateId;
       customerName;
@@ -597,14 +601,13 @@ actor {
       paymentReceivedTimestamp = null;
     };
 
-    updateEstimateInventory(lineItems, false);
     estimates.add(estimateId, estimate);
     estimateId;
   };
 
   public query ({ caller }) func getAllEstimates() : async [Estimate] {
     requireUser(caller);
-    estimates.values().toArray().sort();
+    estimates.values().toArray();
   };
 
   public shared ({ caller }) func updateEstimate(
@@ -615,14 +618,15 @@ actor {
     totalAmount : Float,
     netAmount : Float,
     isPaid : Bool,
-    pendingAmount : Float,
-    paidAmount : Float,
-    paymentReceivedTimestamp : ?Time.Time,
+    _pendingAmount : Float,
+    _paidAmount : Float,
+    _paymentReceivedTimestamp : ?Time.Time,
   ) : async () {
     requireUser(caller);
     switch (estimates.get(estimateId)) {
       case (null) { () };
       case (?existingEstimate) {
+        validateStockAvailability(lineItems, ?existingEstimate.lineItems);
         updateEstimateInventory(existingEstimate.lineItems, true);
 
         let updatedEstimate : Estimate = {
@@ -634,9 +638,9 @@ actor {
           netAmount;
           createdAt = existingEstimate.createdAt;
           isPaid;
-          pendingAmount;
-          paidAmount;
-          paymentReceivedTimestamp;
+          pendingAmount = existingEstimate.pendingAmount;
+          paidAmount = existingEstimate.paidAmount;
+          paymentReceivedTimestamp = existingEstimate.paymentReceivedTimestamp;
         };
 
         updateEstimateInventory(lineItems, false);
@@ -688,6 +692,17 @@ actor {
           paymentReceivedTimestamp = if (paidAmount > 0) { ?Time.now() } else { null };
         };
         estimates.add(estimateId, updatedEstimate);
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteEstimate(estimateId : Nat) : async () {
+    requireUser(caller);
+    switch (estimates.get(estimateId)) {
+      case (null) { () };
+      case (?estimate) {
+        updateEstimateInventory(estimate.lineItems, true);
+        estimates.remove(estimateId);
       };
     };
   };
@@ -826,13 +841,50 @@ actor {
     };
   };
 
+  func validateStockAvailability(newLineItems : [EstimateItem], existingLineItems : ?[EstimateItem]) {
+    for (lineItem in newLineItems.values()) {
+      switch (lineItem.productId) {
+        case (null) { () };
+        case (?productId) {
+          switch (products.get(productId)) {
+            case (null) { Runtime.trap("Product not found: " # productId.toText()) };
+            case (?product) {
+              let requestedQuantity = lineItem.quantity.toInt();
+              var availableStock = product.stockQuantity;
+
+              switch (existingLineItems) {
+                case (null) { () };
+                case (?existingItems) {
+                  for (existingItem in existingItems.values()) {
+                    switch (existingItem.productId) {
+                      case (?existingProductId) {
+                        if (existingProductId == productId) {
+                          availableStock += existingItem.quantity.toInt();
+                        };
+                      };
+                      case (null) { () };
+                    };
+                  };
+                };
+              };
+
+              if (requestedQuantity > availableStock) {
+                Runtime.trap("Insufficient stock for product: " # product.name # ". Available: " # availableStock.toText() # ", Requested: " # requestedQuantity.toText());
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+
   func updateEstimateInventory(lineItems : [EstimateItem], restoring : Bool) {
     for (lineItem in lineItems.values()) {
       let quantity = lineItem.quantity.toInt();
-      switch (products.values().find(func(product) { product.name == lineItem.description })) {
+      switch (lineItem.productId) {
         case (null) { () };
-        case (?product) {
-          updateInventory(product.id, if (restoring) { quantity } else { -quantity });
+        case (?productId) {
+          updateInventory(productId, if (restoring) { quantity } else { -quantity });
         };
       };
     };
@@ -869,6 +921,10 @@ actor {
   };
 
   public query ({ caller }) func validateUser() : async Bool {
+    // Require authentication - anonymous users should not be able to validate
+    if (not openAccess and not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only authenticated users can validate");
+    };
     openAccess or AccessControl.getUserRole(accessControlState, caller) == #user or AccessControl.getUserRole(accessControlState, caller) == #admin;
   };
 };
